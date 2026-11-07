@@ -6,6 +6,6 @@ repos:
         entry: bun run format:check
         language: system
         pass_filenames: false
-        # Keep the hook scoped to root tooling and the TypeScript stack. Add
-        # stack-specific hooks only after selecting that stack for a target repo.
-        files: ^(stacks/typescript/|stacks/.*/package\.json$|scripts/|biome\.json$|package\.json$)
+        # Keep the hook scoped to the root tooling and the PocketBase JS
+        # migrations. apps/android is ignored by Biome.
+        files: ^(apps/pocketbase/|scripts/|biome\.json$|package\.json$|bunfig\.toml$)

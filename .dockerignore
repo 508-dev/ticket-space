@@ -7,24 +7,12 @@
 .env
 .env.*
 !.env.example
-.sops.yaml
 
-.venv
 node_modules
 **/node_modules
 
-__pycache__
-*.py[cod]
-.mypy_cache
-.pytest_cache
-.ruff_cache
-.coverage
-coverage.xml
-htmlcov
-
 dist
 build
-apps/web/dist
 
 .DS_Store
 *.log

@@ -3,7 +3,18 @@
   "root": true,
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/.venv", "!**/.claude", "!**/.mypy_cache", "!**/.pytest_cache"]
+    "includes": [
+      "**",
+      "!apps/android",
+      "!**/build",
+      "!**/dist",
+      "!**/.gradle",
+      "!**/.venv",
+      "!**/.claude",
+      "!**/.context",
+      "!**/node_modules",
+      "!**/pb_data"
+    ]
   },
   "formatter": {
     "enabled": true,

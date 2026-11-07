@@ -3,9 +3,9 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
-# Root validation covers the language-neutral wrapper scripts plus the default
-# TypeScript stack. Run stack-local check-all scripts after selecting extras.
+# Full local gate. Absent components (apps/android, apps/pocketbase) are
+# skipped with a message, not treated as an error. The merge gate is described
+# in docs/architecture.md "Engineering rules".
+bun run format:check
 ./scripts/lint.sh
-./scripts/typecheck.sh
 ./scripts/test.sh
-bun run build
