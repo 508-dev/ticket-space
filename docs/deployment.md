@@ -1,63 +1,85 @@
 # Deployment
 
-508 Devkit does not choose a deployment platform by default. Pick the smallest deployment shape that matches the product, team, and operational constraints.
+Ticket Space's PocketBase backend runs as a single Docker app on **Coolify** at
+`https://ticketspace.508.dev`. There is no separate web frontend or database
+service to deploy — PocketBase embeds SQLite and serves its own REST and
+realtime APIs.
 
-## Decision Record
+## Coolify application
 
-When applying this devkit to a project, record the deployment decision here:
+Create one application in Coolify with these settings:
 
-- Target platform:
-- Services deployed:
-- Database and storage:
-- Secrets management:
-- Preview environment strategy:
-- Rollback strategy:
-- Production health checks:
+| Setting | Value |
+| --- | --- |
+| Source | Public repository `github.com/508-dev/ticket-space` |
+| Branch | `main` |
+| Build pack | Dockerfile |
+| Dockerfile location | `/apps/pocketbase/Dockerfile` |
+| Base directory | `/apps/pocketbase` |
+| Ports exposes | `8090` |
+| Domain | `https://ticketspace.508.dev` |
+| Health check | `/api/health` |
 
-## Common Options
+The image is built from `apps/pocketbase/Dockerfile`, which downloads and
+checksum-verifies the pinned PocketBase release (see
+`apps/pocketbase/README.md`). Because the Dockerfile pins the `linux/amd64`
+asset, ensure the build targets `linux/amd64`.
 
-| Option | Good Fit | Tradeoffs |
-| --- | --- | --- |
-| Fly.io | Small teams that want simple app hosting close to users. | Requires platform-specific config and operational familiarity. |
-| Render | Straightforward web services, workers, and managed databases. | Less control than lower-level infrastructure. |
-| Vercel or Cloudflare Pages | Frontend-first apps and edge-friendly web surfaces. | Backend, worker, and database workflows may need separate hosting. |
-| Kamal | Teams that want Docker deploys to owned servers. | Requires server operations, registry setup, and rollback discipline. |
-| Coolify | Self-hosted platform-style deploys. | Adds a platform to operate and upgrade. |
-| Kubernetes | Larger teams with existing cluster operations. | Too much machinery for most new projects. |
+## Persistent storage
 
-## Mobile Store Publishing
+Add a persistent volume mounted at `/pb/pb_data`. This holds the SQLite
+database, uploaded files and backups — everything durable.
 
-Native mobile apps aren't a deployment-platform decision at all — there's no
-server to host. If the target project selects `stacks/android`, use its
-release pipeline instead of anything in this file: `version.txt` +
-release-please decide the version, a release-PR merge is what ships it, and
-CI publishes signed builds to GitHub Releases, Google Play (internal track),
-and F-Droid (a self-hosted repo plus an optional f-droid.org submission). See
-`stacks/android/README.md` for the full model, including why the two jobs
-live in one workflow run and how signing keys are handled.
+- Host path (or Coolify volume) → `/pb/pb_data`
 
-The target repo's own `docs/deployment.md` should be rewritten to describe
-that concrete pipeline rather than keeping this file's generic
-platform-decision-record shape — see `stacks/android/README.md` → "Docs To
-Write In The Target Repo".
+Migrations in `pb_migrations/` and hooks in `pb_hooks/` are baked into the
+image and re-applied/loaded automatically on startup, so they do not need a
+volume.
 
-## Workflow Guidance
+## First boot
 
-Keep deployment workflows platform-specific and explicit. A project should add deploy CI only after the platform is chosen and secrets are configured.
+1. Deploy the application and confirm `/api/health` returns `200`.
+2. Create the superuser from inside the running container:
 
-Before enabling automatic production deploys:
+   ```bash
+   docker exec <container> /pb/pocketbase superuser upsert EMAIL PASSWORD
+   ```
 
-1. Add a health endpoint or smoke test.
-2. Document required environment variables.
-3. Confirm rollback behavior.
-4. Keep preview deploys separate from production deploys.
-5. Use least-privilege deployment credentials.
+   (From the Coolify UI, open a terminal on the container.)
 
-## Agent Notes
+3. Seed the app users with the bootstrap script:
 
-- Do not infer a deployment platform from this devkit. Inspect the target repo,
-  hosting account, and team preference first.
-- Keep deployment workflows out of new repos until secrets and rollback are
-  known.
-- If deployment is undecided, leave the decision record blank rather than
-  copying placeholder platform files.
+   ```bash
+   PB_URL=https://ticketspace.508.dev \
+   PB_SUPERUSER_EMAIL=<superuser-email> \
+   PB_SUPERUSER_PASSWORD=<superuser-password> \
+   TICKETSPACE_USERS='email:password:name;email:password:name' \
+     apps/pocketbase/scripts/bootstrap.sh
+   ```
+
+   `TICKETSPACE_USERS` is `;`-separated and `:`-delimited. The script is
+   idempotent — safe to re-run to add or update accounts.
+
+Secrets (superuser credentials and user passwords) live in environment
+variables or a gitignored `.env`, never in git or in the migrations.
+
+## Backups
+
+Backups are PocketBase's built-in scheduled backups, configured by the
+`1794072002_initial_settings.js` migration:
+
+- schedule: daily at `03:00`
+- retention: keep the last `7`
+- storage: on the persistent volume (under `/pb/pb_data/backups`)
+
+No external object storage is configured for the POC. Restore is done with
+`/pb/pocketbase admin restore <backup>` (or the equivalent superuser UI/API
+flow) against the same volume. For off-site backups later, attach the Coolify
+scheduled backup to the `/pb/pb_data` volume, since the built-in backups live
+inside it and are not covered by Coolify's app-level backups otherwise.
+
+## Rollback
+
+Roll back by redeploying a previous `main` commit. Migrations are forward-only
+in practice; a rollback that removes collections requires a new `down`
+migration. The `main` branch is the deploy source — merge to `main` to ship.

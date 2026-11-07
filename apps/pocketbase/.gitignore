@@ -1,0 +1,7 @@
+# Local PocketBase runtime state — never commit.
+pb_data/
+
+# Local secrets
+.env
+.env.*
+!.env.example
