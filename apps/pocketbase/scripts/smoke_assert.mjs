@@ -317,6 +317,44 @@ async function main() {
       json: { done_by: s2.record.id },
     })
     check(patched.data?.done_by === "", "client-supplied done_by is ignored while status is unchanged")
+
+    // editing the title of an already-done todo keeps done_by/done_at unchanged
+    const doneTodo = await req("POST", "/api/collections/todos/records", {
+      token: s1.token,
+      json: { title: "hook-done", status: "open", priority: 1, room: roomId, created_by: s1.record.id },
+    })
+    const markedDone = await req("PATCH", `/api/collections/todos/records/${doneTodo.data?.id}`, {
+      token: s1.token,
+      json: { status: "done" },
+    })
+    const origDoneBy = markedDone.data?.done_by
+    const origDoneAt = markedDone.data?.done_at
+    check(origDoneBy === s1.record.id && !!origDoneAt, "done todo has done_by/done_at set before edit")
+
+    const edited = await req("PATCH", `/api/collections/todos/records/${doneTodo.data?.id}`, {
+      token: s2.token, // a different user edits the title of an already-done todo
+      json: { title: "hook-done (edited)" },
+    })
+    check(edited.data?.status === "done", "editing a done todo keeps status done")
+    check(edited.data?.done_by === origDoneBy, "editing a done todo keeps done_by unchanged")
+    check(edited.data?.done_at === origDoneAt, "editing a done todo keeps done_at unchanged")
+
+    // creating a todo with spoofed done_by/done_at (status open) stores them empty
+    const spoofed = await req("POST", "/api/collections/todos/records", {
+      token: s1.token,
+      json: {
+        title: "hook-spoof",
+        status: "open",
+        priority: 1,
+        room: roomId,
+        created_by: s1.record.id,
+        done_by: s2.record.id,
+        done_at: "2020-01-01 00:00:00.000Z",
+      },
+    })
+    check(spoofed.ok, "create with spoofed done_by/done_at (status open) succeeds")
+    check(spoofed.data?.done_by === "", "spoofed done_by is stored empty on create (status open)")
+    check(spoofed.data?.done_at === "", "spoofed done_at is stored empty on create (status open)")
   }
 
   // --- realtime -------------------------------------------------------
