@@ -22,5 +22,5 @@ posts PR comments.
 ## Security Extras
 
 Secret scanning (Gitleaks) and Dependency Review are not enabled here; the
-`extras/` add-ons were removed during template selection. Prefer GitHub native
-secret scanning and push protection where available.
+devkit security add-ons were removed during template selection. Prefer GitHub
+native secret scanning and push protection where available.

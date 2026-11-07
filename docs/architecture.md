@@ -214,9 +214,10 @@ When several anchors resolve, prefer the anchor closest to the camera.
 - Conventional-commit PR titles (`feat:`, `fix:`, `docs:`, `chore:` and so on).
 - Until CI exists, the merge gate is local:
   - Android: `./gradlew assembleDebug lint test` (from `apps/android`, with
-    `JAVA_HOME=/usr/lib/jvm/java-21-openjdk` and
-    `ANDROID_HOME=$HOME/Android/Sdk`), plus an install-and-launch smoke test on a
-    connected device for app changes.
+    `JAVA_HOME=/opt/android-studio/jbr` and `ANDROID_HOME=$HOME/Android/Sdk`;
+    the system JDK 21 package at `/usr/lib/jvm/java-21-openjdk` is a runtime
+    only, with no `javac`), plus an install-and-launch smoke test on a connected
+    device for app changes.
   - Backend: `apps/pocketbase/scripts/smoke.sh` (migrations apply on a fresh data
     dir; CRUD, rules and the hook behave).
 - Secrets live in environment variables or gitignored files (`.env`,

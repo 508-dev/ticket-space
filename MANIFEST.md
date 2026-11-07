@@ -33,6 +33,5 @@ cleanup.
 | `docs/tooling.md` | Tooling conventions. |
 | `docs/supply-chain.md` | Dependency cooldown and locked-install policy. |
 | `docs/github-workflows.md` | GitHub workflow guidance. |
-| `docs/interfaces.md` | Kept from the devkit; not product-specific. |
-| `docs/observability.md` | Observability env-var defaults. |
-| `docs/secrets.md` | Secret-handling guidance. |
+| `docs/observability.md` | Logging and telemetry posture. |
+| `docs/secrets.md` | Where secrets live and how they are handled. |
