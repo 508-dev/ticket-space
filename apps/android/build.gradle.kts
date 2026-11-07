@@ -1,0 +1,7 @@
+// AGP 9 provides built-in Kotlin; do not apply kotlin-android.
+plugins {
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.ktlint) apply false
+}
