@@ -1,28 +1,25 @@
 # Secrets
 
-Most repos should use environment variables and CI secrets.
+Ticket Space keeps secrets out of git. Nothing in tracked docs, migrations, or
+workflows contains credentials.
 
-SOPS is optional. Add it only when the repository needs encrypted files checked into Git, such as shared non-production config or deploy manifests.
+Where the values live:
 
-GitHub secret scanning and push protection should be the first choice when they
-are available for the repository. Use the Gitleaks extra only when maintainers
-also want repo-local CI scanning and are ready to triage historical findings.
+- `.env` (repo root, gitignored, copied into worktrees via `.worktreeinclude`):
+  PocketBase superuser credentials and other backend environment values.
+- `local.properties` (gitignored): Android SDK path, `ARCORE_API_KEY` for Cloud
+  Anchors, and the optional debug `ticketspace.baseUrl` override.
+- `keystore.properties` (gitignored): release signing material; see
+  `stacks/android/README.md`.
+- Coolify environment variables: production values for the PocketBase service.
 
-If SOPS is adopted:
+Rules:
 
-1. Copy `.sops.yaml.example` to `.sops.yaml`.
-2. Replace the example Age recipient.
-3. Store encrypted files under `secrets/`.
-4. Document decrypt/edit commands in this file.
+- Read secrets from the environment; never hard-code them or put them in a
+  migration.
+- Never echo a secret in a workflow step or log.
+- If a real secret is committed, rotate it. Removing it from git history is not
+  enough.
 
-Do not commit plaintext secrets.
-
-## Agent Notes
-
-- Replace generic reporting language with the target repo's real private
-  vulnerability channel before shipping public docs.
-- Do not add `.sops.yaml` unless encrypted tracked files are actually needed.
-- Do not add the Gitleaks workflow silently. Secret scanning can be noisy until
-  a baseline and ignore process exist.
-- When a real secret is found, tell maintainers to rotate it. Removing it from
-  git history is not enough.
+No encrypted-file tooling (SOPS or similar) is in use. Add it only if the
+project ever needs encrypted config checked into Git.
