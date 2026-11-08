@@ -31,6 +31,7 @@ android {
         targetSdk = 36
         versionCode = 1000
         versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BASE_URL", quoted(baseUrl))
         buildConfigField("String", "ARCORE_AUTH", quoted(arcoreAuth))
         manifestPlaceholders["arcoreApiKey"] =
@@ -82,4 +83,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockwebserver)
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }
