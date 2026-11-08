@@ -7,8 +7,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -18,9 +25,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.co508.ticketspace.BuildConfig
@@ -37,6 +48,7 @@ fun SignInScreen(
     restoreError: String?,
 ) {
     val operation by vm.operation.collectAsStateWithLifecycle()
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
     Page("Ticket Space") {
         Text("Small fixes. Shared spaces.", style = MaterialTheme.typography.titleLarge)
         Text("Sign in to see what needs doing in your space.")
@@ -55,8 +67,26 @@ fun SignInScreen(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Password") },
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation =
+                if (passwordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector =
+                            if (passwordVisible) {
+                                Icons.Filled.VisibilityOff
+                            } else {
+                                Icons.Filled.Visibility
+                            },
+                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                    )
+                }
+            },
         )
         Button(
             onClick = vm::signIn,
@@ -157,6 +187,9 @@ fun RoomDetailScreen(
     navigate: (String) -> Unit,
 ) {
     val state by vm.spaces.collectAsStateWithLifecycle()
+    val operation by vm.operation.collectAsStateWithLifecycle()
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(operation.success) { if (operation.success) back() }
     Page(state.rooms.find { it.id == id }?.name ?: "Room", back) {
         DataContent(state, vm::retry) {
             val room = state.rooms.find { it.id == id }
@@ -175,10 +208,52 @@ fun RoomDetailScreen(
                 val todos = state.todos.filter { it.room == id }
                 if (todos.isEmpty()) Text("This room has no todos yet.")
                 todos.forEach { todo -> TodoCard(todo, null) { navigate("todo/${todo.id}") } }
+                OutlinedButton(onClick = { confirmDelete = true }, enabled = !operation.busy) {
+                    Icon(Icons.Filled.Delete, contentDescription = null)
+                    Text("Delete room")
+                }
+            }
+        }
+        OperationMessage(operation)
+        if (confirmDelete) {
+            val room = state.rooms.find { it.id == id }
+            if (room != null) {
+                AlertDialog(
+                    onDismissRequest = { confirmDelete = false },
+                    title = { Text("Delete room") },
+                    text = {
+                        Text(
+                            deleteRoomConfirmation(
+                                room.name,
+                                state.todos.count { it.room == id },
+                                state.things.count { it.room == id },
+                            ),
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                confirmDelete = false
+                                vm.deleteRoom(room)
+                            },
+                        ) { Text("Delete") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+                    },
+                )
             }
         }
     }
 }
+
+fun deleteRoomConfirmation(
+    roomName: String,
+    todoCount: Int,
+    thingCount: Int,
+): String =
+    "Delete $roomName? This permanently deletes its $todoCount todos and $thingCount things. " +
+        "Anchors hosted on Google expire on their own."
 
 @Composable
 fun NewTodoScreen(

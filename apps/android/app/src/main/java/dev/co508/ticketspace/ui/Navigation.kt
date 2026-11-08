@@ -46,7 +46,7 @@ fun TicketSpace(app: AppContainer) {
     if (!ready) {
         Page("Ticket Space") { CircularProgressIndicator() }
     } else if (session.user == null) {
-        SignInScreen(screenModel { SignInViewModel(app) }, error)
+        SignInScreen(screenModel { SignInViewModel(app.api, app.spaces, app.auth) }, error)
     } else {
         val nav = rememberNavController()
         var arRequest by remember { mutableStateOf<ArRequest?>(null) }
@@ -65,11 +65,11 @@ fun TicketSpace(app: AppContainer) {
         }
         Box(Modifier.fillMaxSize()) {
             NavHost(navController = nav, startDestination = "home") {
-                composable("home") { HomeScreen(screenModel { HomeViewModel(app) }, navigate) }
-                composable("rooms") { RoomsScreen(screenModel { RoomsViewModel(app) }, back, navigate) }
+                composable("home") { HomeScreen(screenModel { HomeViewModel(app.api, app.spaces) }, navigate) }
+                composable("rooms") { RoomsScreen(screenModel { RoomsViewModel(app.api, app.spaces) }, back, navigate) }
                 composable("room/{id}") { entry ->
                     RoomDetailScreen(
-                        screenModel { RoomDetailViewModel(app) },
+                        screenModel { RoomDetailViewModel(app.api, app.spaces) },
                         entry.arguments?.getString("id").orEmpty(),
                         back,
                         navigate,
@@ -87,18 +87,27 @@ fun TicketSpace(app: AppContainer) {
                             },
                         ),
                 ) { entry ->
-                    NewTodoScreen(screenModel { NewTodoViewModel(app) }, entry.arguments?.getString("room"), back)
+                    NewTodoScreen(
+                        screenModel { NewTodoViewModel(app.api, app.spaces, app.auth) },
+                        entry.arguments?.getString("room"),
+                        back,
+                    )
                 }
                 composable("todo/{id}") { entry ->
                     TodoDetailScreen(
-                        screenModel { TodoDetailViewModel(app) },
+                        screenModel { TodoDetailViewModel(app.api, app.spaces, app.auth) },
                         entry.arguments?.getString("id").orEmpty(),
                         back,
                         navigate,
                     )
                 }
-                composable("new-room") { NewRoomScreen(screenModel { NewRoomViewModel(app) }, back) }
-                composable("settings") { SettingsScreen(screenModel { SettingsViewModel(app) }, back) }
+                composable("new-room") { NewRoomScreen(screenModel { NewRoomViewModel(app.api, app.spaces) }, back) }
+                composable("settings") {
+                    SettingsScreen(
+                        screenModel { SettingsViewModel(app.api, app.spaces, app.auth, app.arSettings) },
+                        back,
+                    )
+                }
             }
             arRequest?.let { request ->
                 // A single retained AR surface preserves Local anchors when returning to the P0 screens.
