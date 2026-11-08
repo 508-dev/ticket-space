@@ -21,11 +21,9 @@ class CloudAnchorProvider(
         ttlDays: Int,
     ): HostedAnchor {
         require(ttlDays == cloudTtlDays(auth))
-        val quality = session.estimateFeatureMapQualityForHosting(anchor.pose)
-        Log.i("TicketSpaceAR", "host start provider=cloud quality=$quality ttlDays=$ttlDays")
-        check(
-            quality == Session.FeatureMapQuality.GOOD,
-        ) { "Walk around the spot, keep it in view until quality is Good." }
+        // Feature-map quality is estimated from the camera pose and gated by the caller
+        // (ArRuntime/ArControls): SUFFICIENT or GOOD may host.
+        Log.i("TicketSpaceAR", "host start provider=cloud ttlDays=$ttlDays")
         val started = SystemClock.elapsedRealtime()
         try {
             return operations.run {

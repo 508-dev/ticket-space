@@ -148,7 +148,10 @@ fun ArControls(
                                     !runtime.busy &&
                                         runtime.candidate != null &&
                                         runtime.tracking == TrackingState.TRACKING &&
-                                        (plan.provider == "local" || runtime.quality == Session.FeatureMapQuality.GOOD),
+                                        (
+                                            plan.provider == "local" ||
+                                                runtime.quality != Session.FeatureMapQuality.INSUFFICIENT
+                                        ),
                             ) {
                                 Text(if (runtime.busy) "Hosting…" else "Host anchor ${runtime.hosted.size + 1}")
                             }

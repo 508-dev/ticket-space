@@ -107,8 +107,10 @@ class ArRuntime(
             now - lastQuality > 500
         ) {
             lastQuality = now
+            // ARCore estimates hosting quality from the CAMERA pose (features seen in
+            // the last few seconds from this viewpoint), not from the anchor pose.
             quality =
-                runCatching { checkNotNull(session).estimateFeatureMapQualityForHosting(checkNotNull(candidate).pose) }
+                runCatching { checkNotNull(session).estimateFeatureMapQualityForHosting(camera.pose) }
                     .getOrDefault(Session.FeatureMapQuality.INSUFFICIENT)
             Log.i("TicketSpaceAR", "quality=$quality provider=cloud tracking=$tracking")
         }
