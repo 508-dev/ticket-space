@@ -96,6 +96,7 @@ open class TodoFormViewModel(
     var title by mutableStateOf("")
     var description by mutableStateOf("")
     var room by mutableStateOf("")
+    var thing by mutableStateOf("")
     var priority by mutableStateOf(Priority.NORMAL)
     var tagInput by mutableStateOf("")
     val tags = mutableStateListOf<String>()
@@ -126,6 +127,7 @@ open class TodoFormViewModel(
                 put("title", title.trim())
                 put("description", description.trim())
                 put("room", room)
+                put("thing", thing)
                 put("priority", priority.value)
                 put("tags", JsonArray(tags.map(::JsonPrimitive)))
                 if (removedPhotos.isNotEmpty()) put("photos-", JsonArray(removedPhotos.map(::JsonPrimitive)))
@@ -171,6 +173,7 @@ class TodoDetailViewModel(
         title = todo.title
         description = todo.description
         room = todo.room
+        thing = todo.thing
         priority = todo.priorityLevel
         tags.addAll(todo.tags)
         initialized = true
@@ -180,7 +183,10 @@ class TodoDetailViewModel(
         perform {
             app.api.saveTodo(
                 todo.id,
-                buildJsonObject { put("status", if (todo.status == TodoStatus.OPEN) "done" else "open") },
+                buildJsonObject {
+                    put("status", if (todo.status == TodoStatus.OPEN) "done" else "open")
+                    put("priority", todo.priority)
+                },
             )
             app.spaces.refresh()
         }
@@ -210,6 +216,12 @@ class SettingsViewModel(
     app: AppContainer,
 ) : ScreenViewModel(app) {
     val session = app.auth.session
+    val arSettings = app.arSettings.data
+
+    fun setProvider(provider: dev.co508.ticketspace.ar.providers.ProviderKind) =
+        perform {
+            app.arSettings.setProvider(provider)
+        }
 
     fun signOut() = perform { app.auth.signOut() }
 }

@@ -1,7 +1,9 @@
 package dev.co508.ticketspace.data
 
+import dev.co508.ticketspace.ar.math.Pose
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -172,6 +174,50 @@ class PocketBaseClient(
             .addQueryParameter("thumb", thumb)
             .build()
             .toString()
+
+    suspend fun saveThing(
+        id: String?,
+        room: String,
+        label: String,
+        pose: Pose?,
+    ): Thing =
+        wireJson.decodeFromString(
+            save(
+                "things",
+                id,
+                jsonBody(
+                    buildJsonObject {
+                        put("room", room)
+                        put("label", label)
+                        put("pose_in_room", pose?.toJson() ?: JsonNull)
+                    },
+                ),
+            ),
+        )
+
+    suspend fun saveAnchor(
+        id: String?,
+        room: String,
+        provider: String,
+        anchorId: String,
+        pose: Pose,
+        expiresAt: String?,
+    ): RoomAnchor =
+        wireJson.decodeFromString(
+            save(
+                "room_anchors",
+                id,
+                jsonBody(
+                    buildJsonObject {
+                        put("room", room)
+                        put("provider", provider)
+                        put("anchor_id", anchorId)
+                        put("pose_in_room", pose.toJson())
+                        put("expires_at", expiresAt.orEmpty())
+                    },
+                ),
+            ),
+        )
 
     companion object {
         fun jsonBody(data: JsonObject): RequestBody = data.toString().toRequestBody("application/json".toMediaType())

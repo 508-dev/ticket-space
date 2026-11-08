@@ -1,8 +1,16 @@
 package dev.co508.ticketspace.ui
 
+import android.net.Uri
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -13,12 +21,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.co508.ticketspace.AppContainer
+import dev.co508.ticketspace.ar.ArRequest
 import dev.co508.ticketspace.ar.ArScreen
-import dev.co508.ticketspace.ar.ArViewModel
 
 @Composable
-inline fun <reified T : ViewModel> screenModel(crossinline create: () -> T): T =
+inline fun <reified T : ViewModel> screenModel(
+    key: String? = null,
+    crossinline create: () -> T,
+): T =
     viewModel(
+        key = key,
         factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -37,44 +49,64 @@ fun TicketSpace(app: AppContainer) {
         SignInScreen(screenModel { SignInViewModel(app) }, error)
     } else {
         val nav = rememberNavController()
+        var arRequest by remember { mutableStateOf<ArRequest?>(null) }
+        var arActive by remember { mutableStateOf(false) }
         val back: () -> Unit = { nav.popBackStack() }
-        val navigate: (String) -> Unit = { nav.navigate(it) }
-        NavHost(navController = nav, startDestination = "home") {
-            composable("home") { HomeScreen(screenModel { HomeViewModel(app) }, navigate) }
-            composable("rooms") { RoomsScreen(screenModel { RoomsViewModel(app) }, back, navigate) }
-            composable("room/{id}") { entry ->
-                RoomDetailScreen(
-                    screenModel { RoomDetailViewModel(app) },
-                    entry.arguments?.getString("id").orEmpty(),
-                    back,
-                    navigate,
-                )
+        val navigate: (String) -> Unit = { path ->
+            val route = path.substringBefore('?')
+            if (route == "ar" || route == "register-room") {
+                val uri = Uri.parse("ticketspace:///$path")
+                arRequest =
+                    ArRequest(uri.getQueryParameter("room"), uri.getQueryParameter("thing"), route == "register-room")
+                arActive = true
+            } else {
+                nav.navigate(path)
             }
-            composable(
-                "new-todo?room={room}",
-                arguments =
-                    listOf(
-                        navArgument("room") {
-                            type = NavType.StringType
-                            nullable =
-                                true
-                            defaultValue = null
-                        },
-                    ),
-            ) { entry ->
-                NewTodoScreen(screenModel { NewTodoViewModel(app) }, entry.arguments?.getString("room"), back)
+        }
+        Box(Modifier.fillMaxSize()) {
+            NavHost(navController = nav, startDestination = "home") {
+                composable("home") { HomeScreen(screenModel { HomeViewModel(app) }, navigate) }
+                composable("rooms") { RoomsScreen(screenModel { RoomsViewModel(app) }, back, navigate) }
+                composable("room/{id}") { entry ->
+                    RoomDetailScreen(
+                        screenModel { RoomDetailViewModel(app) },
+                        entry.arguments?.getString("id").orEmpty(),
+                        back,
+                        navigate,
+                    )
+                }
+                composable(
+                    "new-todo?room={room}",
+                    arguments =
+                        listOf(
+                            navArgument("room") {
+                                type = NavType.StringType
+                                nullable =
+                                    true
+                                defaultValue = null
+                            },
+                        ),
+                ) { entry ->
+                    NewTodoScreen(screenModel { NewTodoViewModel(app) }, entry.arguments?.getString("room"), back)
+                }
+                composable("todo/{id}") { entry ->
+                    TodoDetailScreen(
+                        screenModel { TodoDetailViewModel(app) },
+                        entry.arguments?.getString("id").orEmpty(),
+                        back,
+                        navigate,
+                    )
+                }
+                composable("new-room") { NewRoomScreen(screenModel { NewRoomViewModel(app) }, back) }
+                composable("settings") { SettingsScreen(screenModel { SettingsViewModel(app) }, back) }
             }
-            composable("todo/{id}") { entry ->
-                TodoDetailScreen(
-                    screenModel { TodoDetailViewModel(app) },
-                    entry.arguments?.getString("id").orEmpty(),
-                    back,
-                    navigate,
-                )
+            arRequest?.let { request ->
+                // A single retained AR surface preserves Local anchors when returning to the P0 screens.
+                // Its lifecycle is paused while hidden; sign-out destroys the surface and session.
+                Box(Modifier.fillMaxSize().zIndex(if (arActive) 1f else -1f)) {
+                    ArScreen(app, request, arActive) { arActive = false }
+                }
             }
-            composable("new-room") { NewRoomScreen(screenModel { NewRoomViewModel(app) }, back) }
-            composable("settings") { SettingsScreen(screenModel { SettingsViewModel(app) }, back) }
-            composable("ar/{room}") { ArScreen(screenModel { ArViewModel() }, back) }
         }
     }
 }
