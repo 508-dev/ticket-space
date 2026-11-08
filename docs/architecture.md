@@ -74,7 +74,7 @@ fields.
 | | `tags` | json | array of free-form strings |
 | | `status` | select `open` \| `done`, required | |
 | | `photos` | file, multiple, max 3, image/*, ≤10 MB each, thumb `320x320` | |
-| | `room` | relation → rooms, required | |
+| | `room` | relation → rooms, required, cascade delete | |
 | | `thing` | relation → things, optional | null = room-level todo |
 | | `created_by` | relation → users, required | create rule requires `@request.body.created_by = @request.auth.id`; update rule rejects changing it |
 | | `done_by` | relation → users, optional | set by hook |
@@ -119,7 +119,8 @@ events.
 2. **Master list (home)** — open todos sorted by priority (urgent first), then
    oldest first. Filter chips for room and tag; a toggle shows done todos.
 3. **Rooms** — list with panorama thumbnail and open-todo count. Room detail
-   shows that room's todos and an **Open AR** button.
+   shows that room's todos, an **Open AR** button, and a delete action with
+   confirmation.
 4. **New todo** — from the list (pick a room, take up to 3 photos, no Thing) or
    from AR (tap a spot; a photo is grabbed from the AR camera frame). Fields:
    title, description, priority, tags (free-form with autocomplete from tags in
