@@ -8,25 +8,25 @@
 
 migrate(
   (app) => {
-    const settings = app.settings()
+    const settings = app.settings();
 
-    settings.meta.appName = "Ticket Space"
-    settings.meta.appURL = "https://ticketspace.508.dev"
+    settings.meta.appName = "Ticket Space";
+    settings.meta.appURL = "https://ticketspace.508.dev";
 
-    settings.backups.cron = "0 3 * * *"
-    settings.backups.cronMaxKeep = 7
+    settings.backups.cron = "0 3 * * *";
+    settings.backups.cronMaxKeep = 7;
 
-    app.save(settings)
+    app.save(settings);
   },
   (app) => {
-    const settings = app.settings()
+    const settings = app.settings();
 
-    settings.meta.appName = "Acme"
-    settings.meta.appURL = "http://localhost:8090"
+    settings.meta.appName = "Acme";
+    settings.meta.appURL = "http://localhost:8090";
 
-    settings.backups.cron = ""
-    settings.backups.cronMaxKeep = 3
+    settings.backups.cron = "";
+    settings.backups.cronMaxKeep = 3;
 
-    app.save(settings)
+    app.save(settings);
   },
-)
+);

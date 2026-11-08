@@ -16,7 +16,7 @@
 //   * PocketBase ships a default `users` auth collection, so it is modified
 //     here (rules) rather than created.
 
-const authed = '@request.auth.id != ""'
+const authed = '@request.auth.id != ""';
 
 // The contract says `image/*` for the file fields, but PocketBase v0.40.6
 // (mimetype v1.4.15) validates file MIME types by exact match only — the
@@ -31,7 +31,7 @@ const imageMimeTypes = [
   "image/heif",
   "image/bmp",
   "image/tiff",
-]
+];
 
 migrate(
   (app) => {
@@ -43,13 +43,13 @@ migrate(
     // of recreating it, modify its rules to match the contract: password auth
     // only, public signup disabled (createRule null), update self.
     // ------------------------------------------------------------------
-    const users = app.findCollectionByNameOrId("users")
-    users.listRule = authed
-    users.viewRule = authed
-    users.createRule = null // superuser only (public signup disabled)
-    users.updateRule = "id = @request.auth.id"
-    users.deleteRule = null // superuser only
-    app.save(users)
+    const users = app.findCollectionByNameOrId("users");
+    users.listRule = authed;
+    users.viewRule = authed;
+    users.createRule = null; // superuser only (public signup disabled)
+    users.updateRule = "id = @request.auth.id";
+    users.deleteRule = null; // superuser only
+    app.save(users);
 
     // ------------------------------------------------------------------
     // sites
@@ -67,10 +67,10 @@ migrate(
         { type: "autodate", name: "created", onCreate: true, onUpdate: false },
         { type: "autodate", name: "updated", onCreate: true, onUpdate: true },
       ],
-    })
-    app.save(sites)
+    });
+    app.save(sites);
 
-    const sitesId = app.findCollectionByNameOrId("sites").id
+    const sitesId = app.findCollectionByNameOrId("sites").id;
 
     // ------------------------------------------------------------------
     // rooms
@@ -103,10 +103,10 @@ migrate(
         { type: "autodate", name: "created", onCreate: true, onUpdate: false },
         { type: "autodate", name: "updated", onCreate: true, onUpdate: true },
       ],
-    })
-    app.save(rooms)
+    });
+    app.save(rooms);
 
-    const roomsId = app.findCollectionByNameOrId("rooms").id
+    const roomsId = app.findCollectionByNameOrId("rooms").id;
 
     // ------------------------------------------------------------------
     // room_anchors
@@ -142,8 +142,8 @@ migrate(
         { type: "autodate", name: "updated", onCreate: true, onUpdate: true },
       ],
       indexes: ["CREATE INDEX idx_room_anchors_room ON room_anchors (room)"],
-    })
-    app.save(roomAnchors)
+    });
+    app.save(roomAnchors);
 
     // ------------------------------------------------------------------
     // things
@@ -171,11 +171,11 @@ migrate(
         { type: "autodate", name: "updated", onCreate: true, onUpdate: true },
       ],
       indexes: ["CREATE INDEX idx_things_room ON things (room)"],
-    })
-    app.save(things)
+    });
+    app.save(things);
 
-    const thingsId = app.findCollectionByNameOrId("things").id
-    const usersId = app.findCollectionByNameOrId("users").id
+    const thingsId = app.findCollectionByNameOrId("things").id;
+    const usersId = app.findCollectionByNameOrId("users").id;
 
     // ------------------------------------------------------------------
     // todos
@@ -185,7 +185,7 @@ migrate(
       name: "todos",
       listRule: authed,
       viewRule: authed,
-      createRule: authed + " && @request.body.created_by = @request.auth.id",
+      createRule: `${authed} && @request.body.created_by = @request.auth.id`,
       updateRule: authed,
       deleteRule: authed,
       fields: [
@@ -244,31 +244,31 @@ migrate(
         "CREATE INDEX idx_todos_status_priority ON todos (status, priority)",
         "CREATE INDEX idx_todos_room ON todos (room)",
       ],
-    })
-    app.save(todos)
+    });
+    app.save(todos);
   },
   (app) => {
     // down: delete in reverse dependency order. The `users` collection is
     // PocketBase's built-in default, so revert its rules instead of deleting it.
     for (const name of ["todos", "things", "room_anchors", "rooms", "sites"]) {
       try {
-        const collection = app.findCollectionByNameOrId(name)
-        app.delete(collection)
+        const collection = app.findCollectionByNameOrId(name);
+        app.delete(collection);
       } catch {
         // already gone
       }
     }
 
     try {
-      const users = app.findCollectionByNameOrId("users")
-      users.listRule = "id = @request.auth.id"
-      users.viewRule = "id = @request.auth.id"
-      users.createRule = ""
-      users.updateRule = "id = @request.auth.id"
-      users.deleteRule = "id = @request.auth.id"
-      app.save(users)
+      const users = app.findCollectionByNameOrId("users");
+      users.listRule = "id = @request.auth.id";
+      users.viewRule = "id = @request.auth.id";
+      users.createRule = "";
+      users.updateRule = "id = @request.auth.id";
+      users.deleteRule = "id = @request.auth.id";
+      app.save(users);
     } catch {
       // already gone
     }
   },
-)
+);

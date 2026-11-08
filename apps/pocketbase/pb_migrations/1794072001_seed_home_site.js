@@ -5,32 +5,32 @@
 
 migrate(
   (app) => {
-    const sites = app.findCollectionByNameOrId("sites")
+    const sites = app.findCollectionByNameOrId("sites");
 
     // idempotent guard: don't seed a second "Home" if one already exists.
-    let existing = null
+    let existing = null;
     try {
-      existing = app.findFirstRecordByFilter("sites", "name = 'Home'")
+      existing = app.findFirstRecordByFilter("sites", "name = 'Home'");
     } catch {
-      existing = null
+      existing = null;
     }
 
     if (existing) {
-      return
+      return;
     }
 
-    const record = new Record(sites)
-    record.set("name", "Home")
-    app.save(record)
+    const record = new Record(sites);
+    record.set("name", "Home");
+    app.save(record);
   },
   (app) => {
     try {
-      const record = app.findFirstRecordByFilter("sites", "name = 'Home'")
+      const record = app.findFirstRecordByFilter("sites", "name = 'Home'");
       if (record) {
-        app.delete(record)
+        app.delete(record);
       }
     } catch {
       // already gone
     }
   },
-)
+);

@@ -47,5 +47,32 @@
     "clientKind": "git",
     "useIgnoreFile": true,
     "defaultBranch": "main"
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/pocketbase/pb_migrations/**", "apps/pocketbase/pb_hooks/**"],
+      "javascript": {
+        "globals": [
+          "migrate",
+          "Collection",
+          "Record",
+          "DateTime",
+          "onRecordCreateRequest",
+          "onRecordUpdateRequest",
+          "$app",
+          "$os"
+        ]
+      }
+    },
+    {
+      "includes": ["apps/pocketbase/scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    }
+  ]
 }
