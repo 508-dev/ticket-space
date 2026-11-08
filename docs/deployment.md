@@ -38,14 +38,19 @@ volume.
 
 ## First boot
 
-1. Deploy the application and confirm `/api/health` returns `200`.
-2. Create the superuser from inside the running container:
+1. Set `PB_SUPERUSER_EMAIL` and `PB_SUPERUSER_PASSWORD` as secret environment
+   variables on the Coolify application. The container entrypoint
+   (`apps/pocketbase/docker-entrypoint.sh`) upserts that superuser on every
+   start, so rotating the password is a matter of changing the variable and
+   redeploying.
+2. Deploy the application and confirm `/api/health` returns `200`.
+
+   Without those variables, create the superuser from inside the running
+   container instead (from the Coolify UI, open a terminal on the container):
 
    ```bash
    docker exec <container> /pb/pocketbase superuser upsert EMAIL PASSWORD
    ```
-
-   (From the Coolify UI, open a terminal on the container.)
 
 3. Seed the app users with the bootstrap script:
 

@@ -48,4 +48,8 @@ VOLUME /pb/pb_data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -q --spider "http://127.0.0.1:8090/api/health" || exit 1
 
-CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8090"]
+# Ensures the superuser from PB_SUPERUSER_EMAIL/PB_SUPERUSER_PASSWORD when set,
+# then serves on 0.0.0.0:8090.
+COPY docker-entrypoint.sh /pb/docker-entrypoint.sh
+RUN chmod 0755 /pb/docker-entrypoint.sh
+ENTRYPOINT ["/pb/docker-entrypoint.sh"]
