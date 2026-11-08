@@ -76,7 +76,7 @@ fields.
 | | `photos` | file, multiple, max 3, image/*, ≤10 MB each, thumb `320x320` | |
 | | `room` | relation → rooms, required | |
 | | `thing` | relation → things, optional | null = room-level todo |
-| | `created_by` | relation → users, required | create rule also requires `@request.body.created_by = @request.auth.id` |
+| | `created_by` | relation → users, required | create rule requires `@request.body.created_by = @request.auth.id`; update rule rejects changing it |
 | | `done_by` | relation → users, optional | set by hook |
 | | `done_at` | date, optional | set by hook |
 
