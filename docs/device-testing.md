@@ -173,3 +173,18 @@ ambiguous network failure or concurrent writes. Avoid simultaneous re-registrati
 after a partial-save warning, reload and re-register before placing more Things.
 The contract has no registration generation/transaction mechanism; this remains a
 backend follow-up rather than a silent schema change.
+
+### P1 implementation verification (2026-11-08)
+
+- `./gradlew assembleDebug lint test ktlintCheck`: **BUILD SUCCESSFUL in 39s**,
+  with dependency locks enforced. 36 JVM tests passed, including 19 new spatial,
+  projection, provider-policy/concurrency, beacon and spatial-API tests.
+- ASUS `NAAIB700H902PD8`: streamed `adb install -r` succeeded on the first attempt.
+  Force-stop followed by `am start -W` returned `Status: ok`, `WaitTime: 87` ms.
+  The app process remained alive; PID-filtered AndroidRuntime and crash-buffer
+  queries returned no output. Historical crashes from unrelated system apps were
+  excluded from the result.
+- Keyguard reported `showing=true`, `inputRestricted=true`, `secure=true`. No
+  unlock was attempted. AR UI screenshots, tracking, quality/hosting, physical
+  alignment, Depth hits, camera-photo orientation and second-phone Cloud resolution
+  remain untested on hardware; run the script above when the owner is available.
