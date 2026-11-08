@@ -1,0 +1,19 @@
+# Build-context exclusions for apps/pocketbase (see docs/development.md).
+# The Dockerfile downloads the PocketBase binary itself; nothing local should
+# leak into the image, especially local data and secrets.
+
+pb_data
+pb_data/*
+.env
+.env.*
+!.env.example
+
+.git
+.context
+node_modules
+**/node_modules
+
+.DS_Store
+*.log
+tmp
+temp
