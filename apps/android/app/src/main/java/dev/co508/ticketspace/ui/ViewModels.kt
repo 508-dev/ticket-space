@@ -6,8 +6,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.co508.ticketspace.AppContainer
+import dev.co508.ticketspace.data.ArSettings
+import dev.co508.ticketspace.data.AuthStore
 import dev.co508.ticketspace.data.Priority
+import dev.co508.ticketspace.data.Room
+import dev.co508.ticketspace.data.SpaceStore
+import dev.co508.ticketspace.data.TicketApi
 import dev.co508.ticketspace.data.Todo
 import dev.co508.ticketspace.data.TodoQuery
 import dev.co508.ticketspace.data.TodoStatus
@@ -29,9 +33,10 @@ data class Operation(
 )
 
 open class ScreenViewModel(
-    protected val app: AppContainer,
+    protected val api: TicketApi,
+    protected val repo: SpaceStore,
 ) : ViewModel() {
-    val spaces = app.spaces.state
+    val spaces = repo.state
     private val mutableOperation = MutableStateFlow(Operation())
     val operation = mutableOperation.asStateFlow()
 
@@ -51,7 +56,7 @@ open class ScreenViewModel(
     }
 
     fun retry() {
-        viewModelScope.launch { app.spaces.refresh() }
+        viewModelScope.launch { repo.refresh() }
     }
 
     fun photoUrl(
@@ -59,40 +64,53 @@ open class ScreenViewModel(
         id: String,
         name: String,
         thumb: String = "320x320",
-    ) = app.api.fileUrl(collection, id, name, thumb)
+    ) = api.fileUrl(collection, id, name, thumb)
 }
 
 class SignInViewModel(
-    app: AppContainer,
-) : ScreenViewModel(app) {
+    api: TicketApi,
+    repo: SpaceStore,
+    private val auth: AuthStore,
+) : ScreenViewModel(api, repo) {
     var email by mutableStateOf("")
     var password by mutableStateOf("")
 
     fun signIn() =
         perform {
             require(email.isNotBlank() && password.isNotEmpty()) { "Enter your email and password." }
-            app.auth.signIn(email.trim(), password)
+            auth.signIn(email.trim(), password)
             password = ""
         }
 }
 
 class HomeViewModel(
-    app: AppContainer,
-) : ScreenViewModel(app) {
+    api: TicketApi,
+    repo: SpaceStore,
+) : ScreenViewModel(api, repo) {
     var query by mutableStateOf(TodoQuery())
 }
 
 class RoomsViewModel(
-    app: AppContainer,
-) : ScreenViewModel(app)
+    api: TicketApi,
+    repo: SpaceStore,
+) : ScreenViewModel(api, repo)
 
 class RoomDetailViewModel(
-    app: AppContainer,
-) : ScreenViewModel(app)
+    api: TicketApi,
+    repo: SpaceStore,
+) : ScreenViewModel(api, repo) {
+    fun deleteRoom(room: Room) =
+        perform {
+            api.delete("rooms", room.id)
+            repo.refresh()
+        }
+}
 
 open class TodoFormViewModel(
-    app: AppContainer,
-) : ScreenViewModel(app) {
+    api: TicketApi,
+    repo: SpaceStore,
+    private val auth: AuthStore,
+) : ScreenViewModel(api, repo) {
     var title by mutableStateOf("")
     var description by mutableStateOf("")
     var room by mutableStateOf("")
@@ -133,13 +151,13 @@ open class TodoFormViewModel(
                 if (removedPhotos.isNotEmpty()) put("photos-", JsonArray(removedPhotos.map(::JsonPrimitive)))
                 if (id == null) {
                     put("status", "open")
-                    put("created_by", checkNotNull(app.auth.session.value.user).id)
+                    put("created_by", checkNotNull(auth.session.value.user).id)
                 }
             }
-        app.api.saveTodo(id, fields, photos.toList())
+        api.saveTodo(id, fields, photos.toList())
         photos.forEach { it.delete() }
         photos.clear()
-        app.spaces.refresh()
+        repo.refresh()
         removedPhotos.clear()
     }
 
@@ -149,12 +167,16 @@ open class TodoFormViewModel(
 }
 
 class NewTodoViewModel(
-    app: AppContainer,
-) : TodoFormViewModel(app)
+    api: TicketApi,
+    repo: SpaceStore,
+    auth: AuthStore,
+) : TodoFormViewModel(api, repo, auth)
 
 class TodoDetailViewModel(
-    app: AppContainer,
-) : TodoFormViewModel(app) {
+    api: TicketApi,
+    repo: SpaceStore,
+    auth: AuthStore,
+) : TodoFormViewModel(api, repo, auth) {
     private var initialized = false
     var editing by mutableStateOf(false)
 
@@ -181,20 +203,21 @@ class TodoDetailViewModel(
 
     fun toggle(todo: Todo) =
         perform {
-            app.api.saveTodo(
+            api.saveTodo(
                 todo.id,
                 buildJsonObject {
                     put("status", if (todo.status == TodoStatus.OPEN) "done" else "open")
                     put("priority", todo.priority)
                 },
             )
-            app.spaces.refresh()
+            repo.refresh()
         }
 }
 
 class NewRoomViewModel(
-    app: AppContainer,
-) : ScreenViewModel(app) {
+    api: TicketApi,
+    repo: SpaceStore,
+) : ScreenViewModel(api, repo) {
     var name by mutableStateOf("")
     var site by mutableStateOf("")
     var panorama by mutableStateOf<File?>(null)
@@ -203,8 +226,8 @@ class NewRoomViewModel(
         perform {
             require(name.isNotBlank() && name.length <= 80) { "Enter a room name of at most 80 characters." }
             require(site.isNotEmpty()) { "No site is available. Ask an administrator to create one." }
-            app.api.saveRoom(null, site, name.trim(), panorama)
-            app.spaces.refresh()
+            api.saveRoom(null, site, name.trim(), panorama)
+            repo.refresh()
         }
 
     override fun onCleared() {
@@ -213,15 +236,18 @@ class NewRoomViewModel(
 }
 
 class SettingsViewModel(
-    app: AppContainer,
-) : ScreenViewModel(app) {
-    val session = app.auth.session
-    val arSettings = app.arSettings.data
+    api: TicketApi,
+    repo: SpaceStore,
+    private val auth: AuthStore,
+    private val arSettingsStore: ArSettings,
+) : ScreenViewModel(api, repo) {
+    val session = auth.session
+    val arSettings = arSettingsStore.data
 
     fun setProvider(provider: dev.co508.ticketspace.ar.providers.ProviderKind) =
         perform {
-            app.arSettings.setProvider(provider)
+            arSettingsStore.setProvider(provider)
         }
 
-    fun signOut() = perform { app.auth.signOut() }
+    fun signOut() = perform { auth.signOut() }
 }

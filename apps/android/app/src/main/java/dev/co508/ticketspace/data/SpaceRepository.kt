@@ -2,6 +2,7 @@ package dev.co508.ticketspace.data
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -48,12 +49,23 @@ fun SpaceState.merge(event: RealtimeEvent.Change): SpaceState =
         else -> this
     }
 
+/**
+ * The subset of [SpaceRepository] the screens and view models depend on.
+ * Extracted so view models can be unit-tested against fakes without an
+ * Android [android.content.Context].
+ */
+interface SpaceStore {
+    val state: StateFlow<SpaceState>
+
+    suspend fun refresh()
+}
+
 class SpaceRepository(
     private val api: PocketBaseClient,
     private val realtime: Realtime,
-) {
+) : SpaceStore {
     private val mutableState = MutableStateFlow(SpaceState())
-    val state = mutableState.asStateFlow()
+    override val state = mutableState.asStateFlow()
     private val mutex = Mutex()
     private var connected = false
 
@@ -84,7 +96,7 @@ class SpaceRepository(
         }
     }
 
-    suspend fun refresh() =
+    override suspend fun refresh() =
         mutex.withLock {
             mutableState.value = mutableState.value.copy(loading = true, error = null)
             try {

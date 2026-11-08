@@ -27,7 +27,7 @@ fun ArDraftForm(
         }
     DisposableEffect(owner) { onDispose { owner.viewModelStore.clear() } }
     CompositionLocalProvider(LocalViewModelStoreOwner provides owner) {
-        val form = screenModel { NewTodoViewModel(app) }
+        val form = screenModel { NewTodoViewModel(app.api, app.spaces, app.auth) }
         LaunchedEffect(draft.key) {
             form.room = draft.room
             form.thing = draft.thing

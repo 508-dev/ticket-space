@@ -424,6 +424,105 @@ async function main() {
     check(spoofed.data?.done_at === "", "spoofed done_at is stored empty on create (status open)");
   }
 
+  // --- room cascade delete --------------------------------------------
+  console.log("\n[room cascade delete]");
+  {
+    // Deleting a room must cascade to its todos, things and room_anchors,
+    // while a sibling room's records survive.
+    const cascadeRoom = await req("POST", "/api/collections/rooms/records", {
+      token: s1.token,
+      json: { site: siteId, name: "Garage" },
+    });
+    const cascadeRoomId = cascadeRoom.data?.id;
+    check(cascadeRoom.ok && !!cascadeRoomId, "create room to cascade-delete");
+
+    const siblingRoom = await req("POST", "/api/collections/rooms/records", {
+      token: s1.token,
+      json: { site: siteId, name: "Shed" },
+    });
+    const siblingRoomId = siblingRoom.data?.id;
+    check(siblingRoom.ok && !!siblingRoomId, "create sibling room for isolation");
+
+    const thing = await req("POST", "/api/collections/things/records", {
+      token: s1.token,
+      json: { room: cascadeRoomId, label: "Workbench" },
+    });
+    const thingId = thing.data?.id;
+
+    const anchor = await req("POST", "/api/collections/room_anchors/records", {
+      token: s1.token,
+      json: {
+        room: cascadeRoomId,
+        provider: "local",
+        anchor_id: "delete-test-anchor",
+        pose_in_room: { t: [0, 0, 0], q: [0, 0, 0, 1] },
+      },
+    });
+    const anchorId = anchor.data?.id;
+
+    const todo = await req("POST", "/api/collections/todos/records", {
+      token: s1.token,
+      json: {
+        title: "cascade-todo",
+        status: "open",
+        priority: 1,
+        room: cascadeRoomId,
+        created_by: s1.record.id,
+      },
+    });
+    const todoId = todo.data?.id;
+    check(thing.ok && anchor.ok && todo.ok, "seed thing + anchor + todo in cascade room");
+
+    const siblingThing = await req("POST", "/api/collections/things/records", {
+      token: s1.token,
+      json: { room: siblingRoomId, label: "Lawnmower" },
+    });
+    const siblingThingId = siblingThing.data?.id;
+
+    const siblingTodo = await req("POST", "/api/collections/todos/records", {
+      token: s1.token,
+      json: {
+        title: "sibling-todo",
+        status: "open",
+        priority: 1,
+        room: siblingRoomId,
+        created_by: s1.record.id,
+      },
+    });
+    const siblingTodoId = siblingTodo.data?.id;
+    check(!!siblingThingId && !!siblingTodoId, "seed sibling room records");
+
+    const del = await req("DELETE", `/api/collections/rooms/records/${cascadeRoomId}`, {
+      token: s1.token,
+    });
+    check(del.ok, `deleting a room succeeds (${del.status})`);
+
+    const goneThing = await req("GET", `/api/collections/things/records/${thingId}`, {
+      token: s1.token,
+    });
+    check(goneThing.status === 404, "room's thing was cascade-deleted");
+
+    const goneAnchor = await req("GET", `/api/collections/room_anchors/records/${anchorId}`, {
+      token: s1.token,
+    });
+    check(goneAnchor.status === 404, "room's anchor was cascade-deleted");
+
+    const goneTodo = await req("GET", `/api/collections/todos/records/${todoId}`, {
+      token: s1.token,
+    });
+    check(goneTodo.status === 404, "room's todo was cascade-deleted");
+
+    const keptThing = await req("GET", `/api/collections/things/records/${siblingThingId}`, {
+      token: s1.token,
+    });
+    check(keptThing.ok, "sibling room's thing survives");
+
+    const keptTodo = await req("GET", `/api/collections/todos/records/${siblingTodoId}`, {
+      token: s1.token,
+    });
+    check(keptTodo.ok, "sibling room's todo survives");
+  }
+
   // --- realtime -------------------------------------------------------
   console.log("\n[realtime]");
   await checkRealtime();

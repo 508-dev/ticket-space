@@ -25,10 +25,42 @@ class ApiException(
     message: String,
 ) : IOException(message)
 
+/**
+ * The subset of [PocketBaseClient] the screens and view models depend on.
+ * Extracted so view models can be unit-tested against fakes without an
+ * Android [android.content.Context].
+ */
+interface TicketApi {
+    fun fileUrl(
+        collection: String,
+        id: String,
+        filename: String,
+        thumb: String = "320x320",
+    ): String
+
+    suspend fun saveTodo(
+        id: String?,
+        fields: JsonObject,
+        photos: List<File> = emptyList(),
+    ): Todo
+
+    suspend fun saveRoom(
+        id: String?,
+        site: String,
+        name: String,
+        panorama: File? = null,
+    ): Room
+
+    suspend fun delete(
+        collection: String,
+        id: String,
+    )
+}
+
 class PocketBaseClient(
     baseUrl: String,
     val http: OkHttpClient = OkHttpClient(),
-) {
+) : TicketApi {
     val base: HttpUrl = baseUrl.trimEnd('/').toHttpUrl()
 
     @Volatile
@@ -123,7 +155,7 @@ class PocketBaseClient(
         return execute(request(endpoint).method(if (id == null) "POST" else "PATCH", body).build())
     }
 
-    suspend fun delete(
+    override suspend fun delete(
         collection: String,
         id: String,
     ) {
@@ -140,20 +172,20 @@ class PocketBaseClient(
 
     suspend fun todos(query: TodoQuery): List<Todo> = list<Todo>("todos", query.filter, TodoQuery.SORT).matching(query)
 
-    suspend fun saveTodo(
+    override suspend fun saveTodo(
         id: String?,
         fields: JsonObject,
-        photos: List<File> = emptyList(),
+        photos: List<File>,
     ): Todo {
         require(photos.size <= 3) { "At most three photos are allowed." }
         return wireJson.decodeFromString(save("todos", id, multipart(fields, "photos+", photos)))
     }
 
-    suspend fun saveRoom(
+    override suspend fun saveRoom(
         id: String?,
         site: String,
         name: String,
-        panorama: File? = null,
+        panorama: File?,
     ): Room {
         val fields =
             buildJsonObject {
@@ -163,11 +195,11 @@ class PocketBaseClient(
         return wireJson.decodeFromString(save("rooms", id, multipart(fields, "panorama", listOfNotNull(panorama))))
     }
 
-    fun fileUrl(
+    override fun fileUrl(
         collection: String,
         id: String,
         filename: String,
-        thumb: String = "320x320",
+        thumb: String,
     ): String =
         url("api", "files", collection, id, filename)
             .newBuilder()
