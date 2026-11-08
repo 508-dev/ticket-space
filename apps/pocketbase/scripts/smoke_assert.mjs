@@ -230,6 +230,49 @@ async function main() {
     check(!r.ok, `todo with someone else's created_by is rejected (${r.status})`);
   }
 
+  // --- update rule: created_by is locked ------------------------------
+  console.log("\n[update rule: created_by]");
+  {
+    const created = await req("POST", "/api/collections/todos/records", {
+      token: s1.token,
+      json: {
+        title: "update-rule",
+        status: "open",
+        priority: 1,
+        room: roomId,
+        created_by: s1.record.id,
+      },
+    });
+    const todoId = created.data?.id;
+
+    // editing the title still works
+    const edited = await req("PATCH", `/api/collections/todos/records/${todoId}`, {
+      token: s1.token,
+      json: { title: "update-rule (edited)" },
+    });
+    check(
+      edited.ok && edited.data?.title === "update-rule (edited)",
+      "updating a todo's title still works",
+    );
+
+    // changing created_by to another user is rejected
+    const reassign = await req("PATCH", `/api/collections/todos/records/${todoId}`, {
+      token: s1.token,
+      json: { created_by: s2.record.id },
+    });
+    check(!reassign.ok, `changing created_by to another user is rejected (${reassign.status})`);
+
+    // resending the same created_by is allowed
+    const sameOwner = await req("PATCH", `/api/collections/todos/records/${todoId}`, {
+      token: s1.token,
+      json: { created_by: s1.record.id },
+    });
+    check(
+      sameOwner.ok && sameOwner.data?.created_by === s1.record.id,
+      "resending the same created_by is allowed",
+    );
+  }
+
   // --- sort order -----------------------------------------------------
   console.log("\n[sort order]");
   {
