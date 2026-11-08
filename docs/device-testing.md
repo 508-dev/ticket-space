@@ -81,6 +81,50 @@ Use administrator-created test accounts, never hardcoded credentials. Verify:
 
 Repeat on Sony Xperia 10 VII / Android 16 when available.
 
+## Integration test against a backend
+
+An instrumented test (`app/src/androidTest/java/dev/co508/ticketspace/data/BackendIntegrationTest.kt`)
+proves the P0 data layer against the live PocketBase backend on a real phone,
+using the app's own `PocketBaseClient`, models, `Realtime` and spatial API. It
+never touches the UI, so it runs on a locked device.
+
+Credentials are supplied as instrumentation arguments (`tsBaseUrl`, `tsEmail`,
+`tsPassword`), never committed. Run it with the wrapper script, which reads
+`TS_BASE_URL`, `TS_TEST_EMAIL` and `TS_TEST_PASSWORD` from the environment or the
+repo-root `.env` (environment wins), passes them to Gradle as
+instrumentation-argument properties, and never echoes the values or the Gradle
+command line:
+
+```bash
+apps/android/scripts/integration-test.sh [ANDROID_SERIAL]   # default NAAIB700H902PD8
+```
+
+Without those arguments a plain `./gradlew connectedDebugAndroidTest` skips the
+single test via `assumeTrue`, so a credential-less run still passes.
+
+Coverage:
+
+- sign in, and the seeded **Home** site is listed;
+- create a room with a small generated JPEG panorama;
+- a todo with two photos, tags and priority 2, then two more todos with other
+  priorities and tags;
+- list sort is priority-desc then oldest-first; room and tag filters return the
+  right set; thumbnail URLs return 200;
+- realtime: subscribe, create a todo, receive its create event within 10 s;
+- mark done sets `done_by`/`done_at` (server-side); reopen clears both;
+- a Thing created with a pose, then unplaced (`pose_in_room = null`); a
+  `room_anchor` (`provider = "local"`) with a pose.
+
+Every created record carries a unique `it-<timestamp>` prefix and is deleted in
+`@After`, so even a failed run leaves nothing behind. Use an
+administrator-created test account (see `apps/pocketbase/scripts/bootstrap.sh`),
+never credentials you do not control. After a run, confirm through the API that
+no `it-` records remain in `todos`, `rooms`, `things` or `room_anchors`.
+
+Verified 2026-11-08 on the ASUS Zenfone 9 against `https://ticketspace.508.dev`:
+the single test passed (`failures="0" errors="0" skipped="0"`, ~12 s) and left
+zero `it-` records.
+
 ## AR test script
 
 Use an unlocked device, good indoor lighting and textured walls/furniture. Test

@@ -17,6 +17,9 @@ coil = "3.3.0"
 # Published 2026-10-31 and 2026-10-16; both beyond the seven-day cooldown.
 sceneview = "4.64.0"
 arcore = "1.57.0"
+# Instrumented (androidTest) runner/JUnit; both long past the cooldown.
+androidxTestRunner = "1.6.2"
+androidxTestExtJunit = "1.2.1"
 
 [libraries]
 sceneview-ar = { module = "io.github.sceneview:arsceneview", version.ref = "sceneview" }
@@ -41,6 +44,8 @@ mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 junit = { module = "junit:junit", version.ref = "junit" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExtJunit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
