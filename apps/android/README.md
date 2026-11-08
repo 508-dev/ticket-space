@@ -1,8 +1,9 @@
-# Ticket Space Android (P0)
+# Ticket Space Android (P0 + P1)
 
 Native Kotlin / Compose / Material 3 app; the Gradle root is **this directory**.
-P0 covers photo todos, rooms, sign-in and live lists. AR routes deliberately show
-“AR coming soon”; no ARCore dependency or camera permission is needed for P0.
+P0 covers photo todos, rooms, sign-in and live lists. P1 adds room registration,
+Local/Cloud anchors, room-frame Things, live beacons and edge arrows. ARCore is
+optional: unsupported devices still use all list/photo flows.
 
 ## Build and run
 
@@ -44,6 +45,13 @@ See [device testing](../../docs/device-testing.md) for install, screenshot and l
   `com.google.android.ar.API_KEY` manifest placeholder; absent means empty.
   Keys are packaged into APKs: restrict any future key to this app and signing
   certificate. Never commit keys, signing files, tokens or account passwords.
+- `BuildConfig.ARCORE_AUTH` defaults to `apikey` (one-day Cloud Anchor TTL).
+  `-Pticketspace.arcoreAuth=keyless` selects 365 days and omits the API key from
+  the manifest; use only after Android OAuth setup (issue #13). Expiry is stored
+  per anchor. Expired anchors require re-registration; renewal is a later phase.
+- SceneView 4.64.0 was released 2026-10-31 15:55 UTC; ARCore 1.57.0 on
+  2026-10-16. SceneView 4.65.0 (2026-11-01 16:28 UTC) was not seven full days old
+  at this build's cutoff (2026-11-07 evening UTC / November 8 locally).
 - Application ID / namespace: `dev.co508.ticketspace`; version `0.1.0` / `1000`.
   Release signing/publishing and version automation are intentionally deferred.
 - Exact versions live in `gradle/libs.versions.toml`; shared Android pins are
@@ -59,9 +67,12 @@ See [device testing](../../docs/device-testing.md) for install, screenshot and l
   session, SSE reconnect/resubscription, snapshot + event StateFlow repository,
   orientation-aware image decode/downscale (long edge 1600, JPEG 85).
 - `ui/`: one ViewModel per screen, Material 3 theme, navigation, forms and camera.
-- `ar/`: P1 placeholder only.
+- `ar/`: retained SceneView session, permission/install/disclosure gate, registration,
+  camera capture, placement, beacons and sheets; `math/` is platform-free rigid
+  transform/projection math; `providers/` contains Local/Cloud backends and policy.
 - `app/src/test/`: JSON mapping, filter escaping/JSON tags, sorting, event merges,
-  HTTP requests/errors/uploads, SSE subscription/reconnect and image sizing.
+  HTTP requests/errors/uploads, SSE subscription/reconnect and image sizing,
+  cross-session room-frame recovery, carry-over, projection and provider timeout/concurrency.
 
 PocketBase JSON-array tags do not support the select/relation `:each` modifier.
 The query client follows the [PocketBase maintainer's JSON-array guidance](https://github.com/pocketbase/pocketbase/discussions/2332#discussioncomment-9238250):
@@ -91,4 +102,18 @@ Do not sign in without the backend/account bootstrap. Once it is available,
 exercise two-device CRUD/live updates, photo capture/orientation, filters, session
 expiry, delete events and network loss on both target phones. MockWebServer tests
 are not a substitute for that integration pass. The Xperia/Android 16 device and
-all P1 spatial functionality remain outside this P0 smoke test.
+P1 spatial tracking and Cloud authorization need the physical-device AR script.
+
+The retained AR surface pauses its lifecycle/camera when returning to lists, so
+Local anchors remain usable during the same activity/app session. Sign-out,
+activity recreation or process death destroys that session. Cloud resolution uses
+the provider on each saved anchor, independent of the default in Settings. The
+first resolved room wins; a manual room choice pins selection without pretending
+the room is located. The nearest tracking anchor in the current room supplies its frame.
+
+Registration uses three anchors at least 75 cm apart and captures a camera reference
+photo (not a stitched 360° panorama). Re-registration transforms current Things when
+an old anchor resolves; otherwise it explicitly stores null poses. PocketBase record
+writes are not transactional: confirmed writes are compensated on failure, but an
+ambiguous network failure or concurrent edit can require re-registration. Do not
+re-register the same room concurrently from two devices.

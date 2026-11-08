@@ -24,6 +24,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.co508.ticketspace.BuildConfig
+import dev.co508.ticketspace.ar.providers.ProviderKind
+import dev.co508.ticketspace.ar.providers.cloudTtlDays
+import dev.co508.ticketspace.data.ArPreferences
 import dev.co508.ticketspace.data.Priority
 import dev.co508.ticketspace.data.TodoStatus
 import dev.co508.ticketspace.data.matching
@@ -74,6 +77,7 @@ fun HomeScreen(
     Page("Your space") {
         Row {
             TextButton(onClick = { navigate("rooms") }) { Text("Rooms") }
+            TextButton(onClick = { navigate("ar") }) { Text("AR") }
             TextButton(onClick = { navigate("settings") }) { Text("Settings") }
         }
         Button(onClick = { navigate("new-todo") }) { Text("New todo") }
@@ -124,6 +128,7 @@ fun RoomsScreen(
     val state by vm.spaces.collectAsStateWithLifecycle()
     Page("Rooms", back) {
         Button(onClick = { navigate("new-room") }) { Text("New room") }
+        OutlinedButton(onClick = { navigate("register-room") }) { Text("Register room in AR") }
         DataContent(state, vm::retry) {
             if (state.rooms.isEmpty()) Text("No rooms yet. Create your first room to start adding todos.")
             state.rooms.forEach { room ->
@@ -164,7 +169,8 @@ fun RoomDetailScreen(
                         "Room panorama",
                     )
                 }
-                Button(onClick = { navigate("ar/$id") }) { Text("Open AR") }
+                Button(onClick = { navigate("ar?room=$id") }) { Text("Open AR") }
+                OutlinedButton(onClick = { navigate("register-room?room=$id") }) { Text("Re-register") }
                 OutlinedButton(onClick = { navigate("new-todo?room=$id") }) { Text("New todo here") }
                 val todos = state.todos.filter { it.room == id }
                 if (todos.isEmpty()) Text("This room has no todos yet.")
@@ -234,7 +240,7 @@ fun TodoDetailScreen(
                 OutlinedButton(onClick = { vm.beginEditing(todo) }, enabled = !operation.busy) { Text("Edit") }
                 if (todo.thing.isNotEmpty()) {
                     OutlinedButton(
-                        onClick = { navigate("ar/${todo.room}") },
+                        onClick = { navigate("ar?room=${todo.room}&thing=${todo.thing}") },
                     ) { Text("Show in AR") }
                 }
             }
@@ -259,7 +265,10 @@ private fun TodoForm(
     Text("Room")
     ChipRow {
         state.rooms.forEach { room ->
-            FilterChip(selected = vm.room == room.id, onClick = { vm.room = room.id }, label = { Text(room.name) })
+            FilterChip(selected = vm.room == room.id, onClick = {
+                if (vm.room != room.id) vm.thing = ""
+                vm.room = room.id
+            }, label = { Text(room.name) })
         }
     }
     Text("Priority")
@@ -387,7 +396,18 @@ fun SettingsScreen(
             Text("Backend (debug only)", style = MaterialTheme.typography.labelLarge)
             Text(BuildConfig.BASE_URL)
         }
-        Text("AR and anchor providers will be available in P1.")
+        val arSettings by vm.arSettings.collectAsStateWithLifecycle(ArPreferences())
+        Text("Default anchor provider")
+        ProviderKind.entries.forEach { provider ->
+            FilterChip(selected = arSettings.defaultProvider == provider.id, onClick = {
+                vm.setProvider(provider)
+            }, label = { Text(provider.label) })
+        }
+        Text(
+            "Local anchors last in this app session. Cloud anchors last ${cloudTtlDays(
+                BuildConfig.ARCORE_AUTH,
+            )} day(s).",
+        )
         Button(onClick = vm::signOut, enabled = !operation.busy) { Text("Sign out") }
         OperationMessage(operation)
     }

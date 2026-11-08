@@ -1,6 +1,8 @@
 package dev.co508.ticketspace.ui
 
+import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import coil3.compose.SubcomposeAsyncImage
 import dev.co508.ticketspace.data.SpaceState
 import dev.co508.ticketspace.data.Todo
@@ -165,20 +168,38 @@ fun CameraButton(
                 source?.delete()
             }
         }
+    val capture = {
+        try {
+            error = null
+            val file = cameraFile(context)
+            pendingPath = file.absolutePath
+            launcher.launch(cameraUri(context, file))
+        } catch (e: ActivityNotFoundException) {
+            pendingPath?.let { File(it).delete() }
+            pendingPath = null
+            error = "No camera app is available on this device."
+        } catch (e: Exception) {
+            pendingPath = null
+            error = "Could not open the camera. Please retry."
+        }
+    }
+    val permission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                capture()
+            } else {
+                error =
+                    "Camera permission is needed to take a photo. You can allow it in app settings."
+            }
+        }
     Row {
         Button(enabled = enabled && !busy && pendingPath == null, onClick = {
-            try {
-                error = null
-                val file = cameraFile(context)
-                pendingPath = file.absolutePath
-                launcher.launch(cameraUri(context, file))
-            } catch (e: ActivityNotFoundException) {
-                pendingPath?.let { File(it).delete() }
-                pendingPath = null
-                error = "No camera app is available on this device."
-            } catch (e: Exception) {
-                pendingPath = null
-                error = "Could not open the camera. Please retry."
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                capture()
+            } else {
+                permission.launch(Manifest.permission.CAMERA)
             }
         }) { Text(if (busy) "Preparing photo…" else label) }
     }

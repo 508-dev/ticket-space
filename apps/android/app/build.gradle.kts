@@ -16,6 +16,8 @@ val local =
             ?.use(::load)
     }
 val baseUrl = providers.gradleProperty("ticketspace.baseUrl").getOrElse("https://ticketspace.508.dev")
+val arcoreAuth = providers.gradleProperty("ticketspace.arcoreAuth").getOrElse("apikey")
+require(arcoreAuth in listOf("apikey", "keyless")) { "ticketspace.arcoreAuth must be apikey or keyless" }
 
 fun quoted(value: String) = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
@@ -30,7 +32,9 @@ android {
         versionCode = 1000
         versionName = "0.1.0"
         buildConfigField("String", "BASE_URL", quoted(baseUrl))
-        manifestPlaceholders["arcoreApiKey"] = local.getProperty("ARCORE_API_KEY", "")
+        buildConfigField("String", "ARCORE_AUTH", quoted(arcoreAuth))
+        manifestPlaceholders["arcoreApiKey"] =
+            if (arcoreAuth == "apikey") local.getProperty("ARCORE_API_KEY", "") else ""
     }
     buildTypes {
         debug {
@@ -56,6 +60,8 @@ ktlint { android.set(true) }
 dependencyLocking { lockAllConfigurations() }
 
 dependencies {
+    implementation(libs.sceneview.ar)
+    implementation(libs.arcore)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

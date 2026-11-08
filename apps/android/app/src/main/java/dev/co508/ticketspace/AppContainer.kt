@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
+import dev.co508.ticketspace.data.ArSettings
 import dev.co508.ticketspace.data.AuthStore
 import dev.co508.ticketspace.data.PocketBaseClient
 import dev.co508.ticketspace.data.Realtime
@@ -19,6 +20,7 @@ class AppContainer(
 ) {
     val api = PocketBaseClient(BuildConfig.BASE_URL)
     val auth = AuthStore(context, api)
+    val arSettings = ArSettings(context)
     val spaces = SpaceRepository(api, Realtime(api))
 
     suspend fun runForeground() {
