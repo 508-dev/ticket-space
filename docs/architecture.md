@@ -16,7 +16,7 @@ in a design review on 2026-11-07/08; change them here first, then in code.
     todos, and see priority-coloured beacons for open todos in AR.
 - Later phases are GitHub issues: P2 tap-to-segment and object naming, P3 live
   glow outlines, a self-hosted FOSS localization provider (OpenVPS on a GPU
-  server), anchor TTL renewal, off-site backups, recurring todos, CI/release.
+  server), anchor TTL renewal, off-site backups, recurring todos.
 - Explicitly out of scope: AI problem spotting, assignees, due dates,
   recurrence, sub-tasks, blockers, comments, push notifications, offline mode,
   iOS.
@@ -162,8 +162,9 @@ interface AnchorProvider {
   through Google Play services using its package (`dev.co508.ticketspace`) and
   signing certificate, so no API key or client ID is shipped. Cloud Anchors use
   a 365-day TTL. The Android OAuth client lives in the `ticketspace-508dev`
-  Cloud project, registered with the package and the debug SHA-1; a release
-  build's SHA-1 must be added to that client when signing exists (issue #12).
+  Cloud project, registered with the package and the owner's local debug SHA-1.
+  Register the release key's SHA-1 as a second Android OAuth client in that
+  project before testing signed release builds (see `docs/deployment.md`).
   Record `expires_at`. Check `estimateFeatureMapQualityForHosting` and guide the
   user to move until the quality is sufficient.
 - The provider is chosen per room at registration; resolution always uses the
@@ -214,13 +215,23 @@ When several anchors resolve, prefer the anchor closest to the camera.
   `docs/supply-chain.md`). Pin exact versions; commit lockfiles and the Gradle
   wrapper.
 - Conventional-commit PR titles (`feat:`, `fix:`, `docs:`, `chore:` and so on).
-- Until CI exists, the merge gate is local:
-  - Android: `./gradlew assembleDebug lint test` (from `apps/android`, with
+- CI's merge gate is `ci-passed` plus `conventional-commit` (PR title). Biome
+  and version-sync regression tests always run; path-filtered Android and
+  PocketBase jobs may skip only after successful path detection. Main pushes
+  and manual runs check both components. The equivalent local gate is
+  `./scripts/check-all.sh`:
+  - Android: `./gradlew assembleDebug lint test ktlintCheck` (from `apps/android`, with
     `JAVA_HOME=/opt/android-studio/jbr` and `ANDROID_HOME=$HOME/Android/Sdk`;
     the system JDK 21 package at `/usr/lib/jvm/java-21-openjdk` is a runtime
     only, with no `javac`), plus an install-and-launch smoke test on a connected
     device for app changes.
   - Backend: `apps/pocketbase/scripts/smoke.sh` (migrations apply on a fresh data
     dir; CRUD, rules and the hook behave).
+  - Versioning: root `version.txt` is authoritative; `scripts/sync-version.sh`
+    derives literal `versionCode`/`versionName`, checked in CI with `--check`.
+- Release-please grooms release PRs from Conventional Commits. The owner merges
+  release PRs to tag and publish a signed APK to GitHub Releases; no Play or
+  F-Droid publishing. Signing secrets live in GitHub's `Prod` environment.
+  Release minification stays off. See `docs/deployment.md` for the full model.
 - Secrets live in environment variables or gitignored files (`.env`,
   `local.properties`, `keystore.properties`). Never commit them.

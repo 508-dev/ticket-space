@@ -1,0 +1,165 @@
+# Main merges groom a release PR; the owner merges that PR to ship. Keep both
+# jobs in one run: tags/PRs created with GITHUB_TOKEN do not trigger workflows.
+# See docs/deployment.md. GitHub APK distribution only, no store publishing.
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Never cancel a publish halfway through and leave a tagged release without APKs.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: Prod
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      released: ${{ steps.release.outputs.releases_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2
+        with:
+          egress-policy: audit
+
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          # Without a PAT the release PR does not automatically trigger CI.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        if: ${{ steps.release.outputs.pr }}
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          # This checkout alone keeps credentials to push derived files to the PR.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Sync derived version files into the release PR
+        if: ${{ steps.release.outputs.pr }}
+        run: |
+          ./scripts/sync-version.sh
+          git add apps/android/app/build.gradle.kts
+          if git diff --cached --quiet; then
+            echo "derived files already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: sync Android version literals"
+          git push
+
+  publish:
+    needs: release-please
+    if: needs.release-please.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Signing secrets are environment-scoped, not repository-scoped.
+    environment: Prod
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+          persist-credentials: false
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+
+      - name: Check derived version files
+        run: ./scripts/sync-version.sh --check
+
+      - name: Work out what is configured
+        id: targets
+        env:
+          KEYSTORE: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          signing=$([ -n "$KEYSTORE" ] && echo true || echo false)
+          echo "signing=$signing" >> "$GITHUB_OUTPUT"
+          echo "signing=$signing" >> "$GITHUB_STEP_SUMMARY"
+          [ "$signing" = true ] || echo "::warning::RELEASE_KEYSTORE_BASE64 is not set — source-only release; skipping APK publishing."
+
+      - name: Restore and validate the signing keystore
+        if: steps.targets.outputs.signing == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          : "${KEYSTORE_PASSWORD:?Missing RELEASE_KEYSTORE_PASSWORD}"
+          : "${KEY_ALIAS:?Missing RELEASE_KEY_ALIAS}"
+          : "${KEY_PASSWORD:?Missing RELEASE_KEY_PASSWORD}"
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d \
+            > "$RUNNER_TEMP/release.keystore"
+          # Catch a truncated/pasted secret or incorrect password before Gradle.
+          keytool -list -keystore "$RUNNER_TEMP/release.keystore" \
+            -storepass:env KEYSTORE_PASSWORD -alias "$KEY_ALIAS" > /dev/null
+
+      - name: Build the signed release APK
+        if: steps.targets.outputs.signing == 'true'
+        working-directory: apps/android
+        env:
+          TICKETSPACE_KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
+          TICKETSPACE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          TICKETSPACE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          TICKETSPACE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        # Do not persist signing passwords in a configuration-cache entry.
+        run: ./gradlew assembleRelease --no-configuration-cache
+
+      - name: Verify and collect the APK
+        if: steps.targets.outputs.signing == 'true'
+        id: artifacts
+        env:
+          RELEASE_VERSION: ${{ needs.release-please.outputs.version }}
+        run: |
+          eval "$(./scripts/sync-version.sh --print)"
+          [[ "$version" == "$RELEASE_VERSION" ]]
+          apk=apps/android/app/build/outputs/apk/release/app-release.apk
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$apksigner" verify "$apk"
+          mkdir -p dist
+          cp "$apk" "dist/ticketspace-${version}.apk"
+          (cd dist && sha256sum "ticketspace-${version}.apk" > "ticketspace-${version}.apk.sha256")
+          echo "apk=dist/ticketspace-${version}.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Attach the APK to the GitHub Release
+        if: steps.targets.outputs.signing == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release-please.outputs.tag }}
+          APK: ${{ steps.artifacts.outputs.apk }}
+        run: gh release upload "$TAG" "$APK" "$APK.sha256" --clobber
+
+      - name: Remove restored keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"

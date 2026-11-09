@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 
 # Root JS lint (Biome covers the PocketBase migrations and root config).
 bun run lint
+./scripts/sync-version.sh --check
 
 # Android lint when the app is present. Absent components are skipped, not
 # treated as an error (apps/android is built in parallel).

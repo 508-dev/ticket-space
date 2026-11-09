@@ -51,7 +51,12 @@ See [device testing](../../docs/device-testing.md) for install, screenshot and l
   2026-10-16. SceneView 4.65.0 (2026-11-01 16:28 UTC) was not seven full days old
   at this build's cutoff (2026-11-07 evening UTC / November 8 locally).
 - Application ID / namespace: `dev.co508.ticketspace`; version `0.1.0` / `1000`.
-  Release signing/publishing and version automation are intentionally deferred.
+  Versions derive from root `version.txt` with `../../scripts/sync-version.sh`.
+  Release signing is optional via `keystore.properties` or `TICKETSPACE_*`
+  environment variables; see [releases](../../docs/deployment.md#releases).
+  CI debug artifacts use a throwaway key and cannot authorize Cloud Anchors;
+  register the release key's SHA-1 as a second Android OAuth client before
+  testing signed releases.
 - Exact versions live in `gradle/libs.versions.toml`; shared Android pins are
   soundboard's 2026-08-26 versions, OkHttp 4.12.0 is from 2023-10-17 and Coil 3.3.0
   from 2025-07-22. These predate the 2026-11-01 cooldown cutoff. The wrapper is

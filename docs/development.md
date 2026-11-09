@@ -1,24 +1,26 @@
 # Development
 
-Local development is pre-MVP: the Android app builds with Gradle on the host,
+The Android app builds with Gradle on the host,
 and the PocketBase backend runs from its pinned Dockerfile.
 
 ## Commands
 
 ```bash
 ./scripts/check-all.sh    # full local gate (skips absent components)
-./scripts/lint.sh         # Biome + Android lint/ktlint
-./scripts/test.sh         # Android unit tests + PocketBase smoke test
+./scripts/lint.sh         # Biome + version sync + Android lint/ktlint
+./scripts/test.sh         # Version-sync tests + Android tests + PocketBase smoke
 ```
 
 Android-specific (from `apps/android/`):
 
 ```bash
-JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleDebug lint test
+JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleDebug lint test ktlintCheck
 ```
 
 The authoritative merge gate is `docs/architecture.md` "Engineering rules".
 Absent components are skipped with a message, not treated as an error.
+CI runs the same Android checks and uploads a debug APK. For release signing
+and version synchronization, see `docs/deployment.md` → Releases.
 
 ## Worktree Includes
 

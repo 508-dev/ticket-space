@@ -9,15 +9,19 @@ Root `.github/` files are meant to be safe defaults for most repositories:
 - `.github/ISSUE_TEMPLATE/feature_request.yml`: captures product or workflow requests.
 - `.github/ISSUE_TEMPLATE/docs_request.yml`: captures documentation gaps.
 - `.github/ISSUE_TEMPLATE/config.yml`: keeps blank issues allowed and documents where to add discussion links.
-- `.github/workflows/ci.yml`: runs `bun install --frozen-lockfile` and Biome lint on PRs and on `main`.
+- `.github/workflows/ci.yml`: Biome and version-sync tests, Android build/lint/unit tests/ktlint with a debug APK artifact, and the PocketBase Docker smoke test. Component jobs use path filters on PRs; main/manual runs check both. The always-running `ci-passed` aggregate fails on detection failures and unexpected skips.
+- `.github/workflows/pr-title.yml`: Conventional Commit PR-title check (`conventional-commit`).
+- `.github/workflows/release.yml`: release-please release PRs and signed GitHub APK publishing on `main`; secrets in Environment `Prod`. See `docs/deployment.md`, including the manual check requirement when using the `GITHUB_TOKEN` fallback.
 
 Keep these templates short. They should improve issue and PR quality without making lightweight collaboration feel bureaucratic.
 
 Workflows pin third-party actions to commit SHAs and use `harden-runner` in audit mode.
 
 Plain checkout-and-run validation jobs should usually keep `contents: read` only.
-Do not add `pull-requests: read` unless the job explicitly calls PR APIs or
-posts PR comments.
+Only path detection needs `pull-requests: read` to list changed PR files.
+The release-please job needs PR/content write access, and publish needs content
+write access to attach assets. Require `ci-passed` and `conventional-commit` in
+branch protection; do not require path-filtered component checks separately.
 
 ## Security Extras
 
