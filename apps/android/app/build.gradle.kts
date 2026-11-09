@@ -16,8 +16,6 @@ val local =
             ?.use(::load)
     }
 val baseUrl = providers.gradleProperty("ticketspace.baseUrl").getOrElse("https://ticketspace.508.dev")
-val arcoreAuth = providers.gradleProperty("ticketspace.arcoreAuth").getOrElse("apikey")
-require(arcoreAuth in listOf("apikey", "keyless")) { "ticketspace.arcoreAuth must be apikey or keyless" }
 
 fun quoted(value: String) = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
@@ -33,9 +31,6 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BASE_URL", quoted(baseUrl))
-        buildConfigField("String", "ARCORE_AUTH", quoted(arcoreAuth))
-        manifestPlaceholders["arcoreApiKey"] =
-            if (arcoreAuth == "apikey") local.getProperty("ARCORE_API_KEY", "") else ""
     }
     buildTypes {
         debug {
@@ -43,6 +38,12 @@ android {
         }
         release {
             isMinifyEnabled = false
+            // Keep rules required by ARCore keyless authorization (see proguard-rules.pro).
+            // Applied once minification is enabled; harmless while it stays disabled.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
     compileOptions {
@@ -63,6 +64,7 @@ dependencyLocking { lockAllConfigurations() }
 dependencies {
     implementation(libs.sceneview.ar)
     implementation(libs.arcore)
+    implementation(libs.play.services.auth)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

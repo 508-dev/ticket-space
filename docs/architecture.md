@@ -158,13 +158,14 @@ interface AnchorProvider {
   UUID in memory; `resolve` succeeds only within the same app session. For
   development and side-by-side comparison with `cloud`.
 - **`cloud`** — ARCore Cloud Anchors (`hostCloudAnchorAsync` /
-  `resolveCloudAnchorAsync`). Long-term auth is keyless (Android OAuth client,
-  TTL up to 365 days). Until that OAuth client exists, an API key restricted to
-  this package and signing certificate is used, which caps TTL at 1 day. The
-  key comes from `local.properties` (`ARCORE_API_KEY`) through a manifest
-  placeholder and is never committed. Record `expires_at`. Check
-  `estimateFeatureMapQualityForHosting` and guide the user to move until the
-  quality is sufficient.
+  `resolveCloudAnchorAsync`). Authorization is keyless: the app authenticates
+  through Google Play services using its package (`dev.co508.ticketspace`) and
+  signing certificate, so no API key or client ID is shipped. Cloud Anchors use
+  a 365-day TTL. The Android OAuth client lives in the `ticketspace-508dev`
+  Cloud project, registered with the package and the debug SHA-1; a release
+  build's SHA-1 must be added to that client when signing exists (issue #12).
+  Record `expires_at`. Check `estimateFeatureMapQualityForHosting` and guide the
+  user to move until the quality is sufficient.
 - The provider is chosen per room at registration; resolution always uses the
   provider recorded on each `room_anchors` row.
 

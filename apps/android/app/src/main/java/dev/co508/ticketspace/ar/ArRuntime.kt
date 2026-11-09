@@ -14,11 +14,10 @@ import com.google.ar.core.Plane
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
 import dev.co508.ticketspace.AppContainer
-import dev.co508.ticketspace.BuildConfig
 import dev.co508.ticketspace.ar.providers.AnchorOperations
+import dev.co508.ticketspace.ar.providers.CLOUD_TTL_DAYS
 import dev.co508.ticketspace.ar.providers.CloudAnchorProvider
 import dev.co508.ticketspace.ar.providers.LocalAnchorProvider
-import dev.co508.ticketspace.ar.providers.cloudTtlDays
 import dev.co508.ticketspace.ar.providers.selectProvider
 import dev.co508.ticketspace.data.Room
 import dev.co508.ticketspace.data.Thing
@@ -86,7 +85,7 @@ class ArRuntime(
 
     fun attach(value: Session) {
         session = value
-        cloud = CloudAnchorProvider(value, AnchorOperations(), BuildConfig.ARCORE_AUTH)
+        cloud = CloudAnchorProvider(value, AnchorOperations())
     }
 
     fun update(value: Frame) {
@@ -160,7 +159,7 @@ class ArRuntime(
             val anchor = checkNotNull(candidate)
             check(anchor.trackingState == TrackingState.TRACKING) { "Keep the spot in view until tracking recovers." }
             val provider = selectProvider(checkNotNull(plan).provider, local, checkNotNull(cloud))
-            val result = provider.host(anchor, cloudTtlDays(BuildConfig.ARCORE_AUTH))
+            val result = provider.host(anchor, CLOUD_TTL_DAYS)
             hosted += RegistrationAnchor(anchor, result)
             candidate = null
         }

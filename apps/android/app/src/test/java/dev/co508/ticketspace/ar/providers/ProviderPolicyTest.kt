@@ -38,12 +38,11 @@ class ProviderPolicyTest {
     }
 
     @Test
-    fun `authentication sets correct TTL and exact expiry`() {
-        assertEquals(1, cloudTtlDays("apikey"))
-        assertEquals(365, cloudTtlDays("keyless"))
+    fun `cloud anchors use a 365 day TTL and exact expiry`() {
+        assertEquals(365, CLOUD_TTL_DAYS)
         assertEquals(
-            "2026-11-09T03:00:00Z",
-            anchorExpiry(Instant.parse("2026-11-08T03:00:00Z"), cloudTtlDays("apikey")),
+            "2027-11-08T03:00:00Z",
+            anchorExpiry(Instant.parse("2026-11-08T03:00:00Z"), CLOUD_TTL_DAYS),
         )
     }
 

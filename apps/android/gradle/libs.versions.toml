@@ -17,6 +17,8 @@ coil = "3.3.0"
 # Published 2026-10-31 and 2026-10-16; both beyond the seven-day cooldown.
 sceneview = "4.64.0"
 arcore = "1.57.0"
+# ARCore keyless authorization (play-services-auth); 22.0.0 released 2026-08-25, beyond the cooldown.
+playServicesAuth = "22.0.0"
 # Instrumented (androidTest) runner/JUnit; both long past the cooldown.
 androidxTestRunner = "1.6.2"
 androidxTestExtJunit = "1.2.1"
@@ -24,6 +26,7 @@ androidxTestExtJunit = "1.2.1"
 [libraries]
 sceneview-ar = { module = "io.github.sceneview:arsceneview", version.ref = "sceneview" }
 arcore = { module = "com.google.ar:core", version.ref = "arcore" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }

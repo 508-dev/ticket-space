@@ -18,7 +18,6 @@ Create gitignored `local.properties`:
 sdk.dir=/home/caleb/Android/Sdk
 # Optional debug-only override; adb reverse forwards this to the host.
 # ticketspace.baseUrl=http://127.0.0.1:8090
-# ARCORE_API_KEY=your-restricted-development-key
 ```
 
 ```bash
@@ -41,14 +40,13 @@ See [device testing](../../docs/device-testing.md) for install, screenshot and l
   build default. Debug alone permits `local.properties` `ticketspace.baseUrl`
   to override it. Release ignores that local URL override.
 - Only debug permits cleartext, only for `127.0.0.1` (not localhost or LAN IPs).
-- `ARCORE_API_KEY` is read from `local.properties` into the
-  `com.google.android.ar.API_KEY` manifest placeholder; absent means empty.
-  Keys are packaged into APKs: restrict any future key to this app and signing
-  certificate. Never commit keys, signing files, tokens or account passwords.
-- `BuildConfig.ARCORE_AUTH` defaults to `apikey` (one-day Cloud Anchor TTL).
-  `-Pticketspace.arcoreAuth=keyless` selects 365 days and omits the API key from
-  the manifest; use only after Android OAuth setup (issue #13). Expiry is stored
+- Cloud Anchors use keyless authorization: the app authenticates through Google
+  Play services using its package (`dev.co508.ticketspace`) and signing
+  certificate, so no API key or OAuth client ID is shipped in the APK. The OAuth
+  client only has to exist in the Google Cloud project (`ticketspace-508dev`) with
+  the right package and SHA-1. Cloud Anchors use a 365-day TTL; expiry is stored
   per anchor. Expired anchors require re-registration; renewal is a later phase.
+  Never commit keys, signing files, tokens or account passwords.
 - SceneView 4.64.0 was released 2026-10-31 15:55 UTC; ARCore 1.57.0 on
   2026-10-16. SceneView 4.65.0 (2026-11-01 16:28 UTC) was not seven full days old
   at this build's cutoff (2026-11-07 evening UTC / November 8 locally).

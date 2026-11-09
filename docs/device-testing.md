@@ -182,9 +182,8 @@ alignment cannot be validated while the phone is locked or fixed in place.
    “not located” and disable spatial placement, while permitting room-level todos.
    Try low light, an untextured wall and network loss; check guidance/errors and
    Retry. Cloud operations time out after 30 s once admitted, with at most 40 active.
-5. Current API-key builds expire Cloud anchors after **one day**. Complete restart
-   and second-phone checks before expiry. `keyless` / 365-day TTL requires issue #13
-   OAuth setup; changing the build flag alone does not configure authorization.
+5. Cloud anchors use keyless authorization with a **365-day** TTL. Complete restart
+   and second-phone checks to verify cross-session resolution before expiry.
 
 ### Sony Xperia 10 VII (Android 16)
 
@@ -206,10 +205,11 @@ ADB="$ANDROID_HOME/platform-tools/adb"
 ```
 
 Look for provider, host/resolve start/result/duration, feature quality and tracking
-state changes. API keys must never appear in logs. Record room/provider, device,
-lighting, approximate displacement, action and timestamp for alignment failures.
-Distinguish `ERROR_NOT_AUTHORIZED` (key restriction/API configuration) from poor
-feature quality, expired IDs, network failure and tracking loss.
+state changes. No API key or OAuth client ID is shipped; nothing sensitive should
+appear in logs. Record room/provider, device, lighting, approximate displacement,
+action and timestamp for alignment failures. Distinguish `ERROR_NOT_AUTHORIZED`
+(OAuth client package/SHA-1 mismatch) from poor feature quality, expired IDs,
+network failure and tracking loss.
 
 Room registration spans ordinary PocketBase record requests. It compensates
 confirmed writes if a later request fails, but cannot guarantee atomicity after an
