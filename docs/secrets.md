@@ -7,8 +7,9 @@ Where the values live:
 
 - `.env` (repo root, gitignored, copied into worktrees via `.worktreeinclude`):
   PocketBase superuser credentials and other backend environment values.
-- `local.properties` (gitignored): Android SDK path, `ARCORE_API_KEY` for Cloud
-  Anchors, and the optional debug `ticketspace.baseUrl` override.
+- `local.properties` (gitignored): Android SDK path and the optional debug
+  `ticketspace.baseUrl` override. Cloud Anchors use keyless auth, so the app
+  holds no ARCore key.
 - `keystore.properties` (gitignored): release signing material; see
   `stacks/android/README.md`.
 - Coolify environment variables: production values for the PocketBase service.
