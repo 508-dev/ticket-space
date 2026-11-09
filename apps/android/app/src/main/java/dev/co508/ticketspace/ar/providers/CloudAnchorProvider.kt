@@ -12,7 +12,6 @@ import kotlin.coroutines.resumeWithException
 class CloudAnchorProvider(
     private val session: Session,
     private val operations: AnchorOperations,
-    private val auth: String,
 ) : AnchorProvider {
     override val id = "cloud"
 
@@ -20,7 +19,7 @@ class CloudAnchorProvider(
         anchor: Anchor,
         ttlDays: Int,
     ): HostedAnchor {
-        require(ttlDays == cloudTtlDays(auth))
+        require(ttlDays == CLOUD_TTL_DAYS)
         // Feature-map quality is estimated from the camera pose and gated by the caller
         // (ArRuntime/ArControls): SUFFICIENT or GOOD may host.
         Log.i("TicketSpaceAR", "host start provider=cloud ttlDays=$ttlDays")

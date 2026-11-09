@@ -21,12 +21,8 @@ enum class ProviderKind(
     }
 }
 
-fun cloudTtlDays(auth: String): Int =
-    when (auth) {
-        "apikey" -> 1
-        "keyless" -> 365
-        else -> error("Unsupported ARCore authentication mode")
-    }
+/** Cloud Anchors are hosted with keyless authorization, which allows a TTL of up to 365 days. */
+const val CLOUD_TTL_DAYS = 365
 
 fun anchorExpiry(
     now: Instant,

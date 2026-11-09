@@ -35,8 +35,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.co508.ticketspace.BuildConfig
+import dev.co508.ticketspace.ar.providers.CLOUD_TTL_DAYS
 import dev.co508.ticketspace.ar.providers.ProviderKind
-import dev.co508.ticketspace.ar.providers.cloudTtlDays
 import dev.co508.ticketspace.data.ArPreferences
 import dev.co508.ticketspace.data.Priority
 import dev.co508.ticketspace.data.TodoStatus
@@ -479,9 +479,7 @@ fun SettingsScreen(
             }, label = { Text(provider.label) })
         }
         Text(
-            "Local anchors last in this app session. Cloud anchors last ${cloudTtlDays(
-                BuildConfig.ARCORE_AUTH,
-            )} day(s).",
+            "Local anchors last in this app session. Cloud anchors last $CLOUD_TTL_DAYS day(s).",
         )
         Button(onClick = vm::signOut, enabled = !operation.busy) { Text("Sign out") }
         OperationMessage(operation)
