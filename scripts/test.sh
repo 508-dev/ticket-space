@@ -4,6 +4,7 @@ set -eu
 cd "$(dirname "$0")/.."
 
 ran=0
+./scripts/test-sync-version.sh
 
 # Android unit tests when the app is present.
 if [ -x apps/android/gradlew ]; then

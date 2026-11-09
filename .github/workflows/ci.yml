@@ -15,6 +15,43 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # paths-filter lists changed PR files through the API.
+      pull-requests: read
+    outputs:
+      android: ${{ steps.paths.outputs.android }}
+      pocketbase: ${{ steps.paths.outputs.pocketbase }}
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: paths
+        with:
+          filters: |
+            android:
+              - 'apps/android/**'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - 'version.txt'
+              - '.release-please-*.json'
+              - 'CHANGELOG.md'
+            pocketbase:
+              - 'apps/pocketbase/**'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bunfig.toml'
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -35,3 +72,100 @@ jobs:
 
       - name: Biome
         run: bun run lint
+
+      - name: Version-sync regression tests
+        run: ./scripts/test-sync-version.sh
+
+  android:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+
+      - name: Check derived version files
+        run: ./scripts/sync-version.sh --check
+
+      - name: Build, lint and test Android
+        working-directory: apps/android
+        run: ./gradlew assembleDebug lint test ktlintCheck
+
+      # CI uses a throwaway debug key; Cloud Anchor auth is not available here.
+      - name: Upload debug APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ticketspace-debug-apk
+          path: apps/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  pocketbase:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.pocketbase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+
+      - name: PocketBase migration and API smoke test
+        run: apps/pocketbase/scripts/smoke.sh
+
+  # Require this stable check in branch protection, not the path-filtered jobs.
+  ci-passed:
+    if: always()
+    needs: [changes, lint, android, pocketbase]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2
+        with:
+          egress-policy: audit
+
+      - name: Check all required jobs
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          LINT: ${{ needs.lint.result }}
+          ANDROID: ${{ needs.android.result }}
+          POCKETBASE: ${{ needs.pocketbase.result }}
+          ANDROID_CHANGED: ${{ needs.changes.outputs.android }}
+          POCKETBASE_CHANGED: ${{ needs.changes.outputs.pocketbase }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          [[ "$CHANGES" == success && "$LINT" == success ]]
+          # Reject missing outputs even if the detection job somehow succeeded.
+          [[ "$ANDROID_CHANGED" == true || "$ANDROID_CHANGED" == false ]]
+          [[ "$POCKETBASE_CHANGED" == true || "$POCKETBASE_CHANGED" == false ]]
+          for component in ANDROID POCKETBASE; do
+            changed="${component}_CHANGED"
+            result="${!component}"
+            if [[ "$EVENT" == pull_request && "${!changed}" == false ]]; then
+              [[ "$result" == success || "$result" == skipped ]]
+            else
+              [[ "$result" == success ]]
+            fi
+          done

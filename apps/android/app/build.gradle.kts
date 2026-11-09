@@ -17,6 +17,30 @@ val local =
     }
 val baseUrl = providers.gradleProperty("ticketspace.baseUrl").getOrElse("https://ticketspace.508.dev")
 
+// A complete local file wins over CI environment variables. With neither
+// configured, assembleRelease produces an unsigned APK. See docs/deployment.md.
+val releaseSigning: Map<String, String>? =
+    run {
+        val fromFile =
+            rootProject.file("keystore.properties").takeIf { it.exists() }?.let { file ->
+                val props = Properties().apply { file.inputStream().use(::load) }
+                listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+                    .associateWith { props.getProperty(it) }
+            }
+        // Providers keep changes to signing inputs visible to the configuration cache.
+        val fromEnv =
+            mapOf(
+                "storeFile" to "TICKETSPACE_KEYSTORE_FILE",
+                "storePassword" to "TICKETSPACE_KEYSTORE_PASSWORD",
+                "keyAlias" to "TICKETSPACE_KEY_ALIAS",
+                "keyPassword" to "TICKETSPACE_KEY_PASSWORD",
+            ).mapValues { (_, name) -> providers.environmentVariable(name).orNull }
+
+        listOfNotNull(fromFile, fromEnv)
+            .firstOrNull { material -> material.values.none { it.isNullOrBlank() } }
+            ?.mapValues { (_, value) -> value!! }
+    }
+
 fun quoted(value: String) = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 android {
@@ -27,6 +51,7 @@ android {
         applicationId = "dev.co508.ticketspace"
         minSdk = 31
         targetSdk = 36
+        // Derived from root version.txt by scripts/sync-version.sh; keep literals.
         versionCode = 1000
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -44,6 +69,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            releaseSigning?.let { material ->
+                signingConfig =
+                    signingConfigs.create("release") {
+                        storeFile = rootProject.file(material.getValue("storeFile"))
+                        storePassword = material.getValue("storePassword")
+                        keyAlias = material.getValue("keyAlias")
+                        keyPassword = material.getValue("keyPassword")
+                    }
+            }
         }
     }
     compileOptions {

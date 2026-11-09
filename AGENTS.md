@@ -22,7 +22,8 @@
 - `apps/android`: Kotlin/Jetpack Compose app (Gradle root lives here).
 - `apps/pocketbase`: pinned PocketBase backend (`Dockerfile`, `pb_migrations/`, `pb_hooks/`, `scripts`).
 - `scripts`: stable project entrypoints (`lint`, `format`, `test`, `check-all`, `dev`).
-- `stacks/android`: Android release/versioning conventions, kept for later (GitHub issue #12).
+- `version.txt`, `.release-please-*.json`: Android release version and release-please config.
+- `.github/workflows`: CI, Conventional Commit PR-title gate, signed GitHub releases.
 - `.context`: gitignored workspace-local scratch for agents.
 
 ## Android Notes
@@ -31,7 +32,11 @@
 - `ANDROID_HOME=$HOME/Android/Sdk`.
 - adb lives at `$ANDROID_HOME/platform-tools/adb`.
 - Do not hand-edit `versionCode`/`versionName`; derive them with
-  `stacks/android/scripts/sync-version.sh` from `version.txt` (see `stacks/android/README.md`).
+  `scripts/sync-version.sh` from root `version.txt` (see `docs/deployment.md`).
+- Release signing reads `apps/android/keystore.properties` (see its `.example`)
+  or `TICKETSPACE_KEYSTORE_FILE`, `TICKETSPACE_KEYSTORE_PASSWORD`,
+  `TICKETSPACE_KEY_ALIAS`, `TICKETSPACE_KEY_PASSWORD`. Without either complete
+  source, release builds are unsigned. Keep release minification off.
 
 ## PocketBase Notes
 
@@ -86,9 +91,13 @@ For broader changes, run:
 ./scripts/check-all.sh
 ```
 
-The local merge gate (until CI exists, GitHub issue #12) is in
-`docs/architecture.md` "Engineering rules":
+The merge gate is in `docs/architecture.md` "Engineering rules". CI's stable
+aggregate check is `ci-passed`; PR titles use `conventional-commit`:
 
-- Android: `./gradlew assembleDebug lint test` (from `apps/android`, with
+- Android: `./gradlew assembleDebug lint test ktlintCheck` (from `apps/android`, with
   `JAVA_HOME=/opt/android-studio/jbr` and `ANDROID_HOME=$HOME/Android/Sdk`).
 - Backend: `apps/pocketbase/scripts/smoke.sh`.
+- Version sync: `./scripts/sync-version.sh --check` and `./scripts/test-sync-version.sh`.
+- The owner merges release PRs; do not merge them or publish manually without
+  authorization. `RELEASE_PLEASE_TOKEN` is optional; without it, bot-created
+  release PRs do not automatically trigger CI (see `docs/deployment.md`).

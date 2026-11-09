@@ -14,17 +14,17 @@ linker = "isolated"
 
 ## Gradle (Android)
 
-Use this when a project selects the Android stack (`stacks/android`).
+The Android Gradle root is `apps/android`.
 
 Gradle has no package-manager-level cooldown flag comparable to Bun. Renovate is
 the whole mechanism: it natively understands Gradle version catalogs and opens
-PRs against `gradle/libs.versions.toml` on the repo's normal
+PRs against `apps/android/gradle/libs.versions.toml` on the repo's normal
 `minimumReleaseAge`, no extra Renovate config required. Don't hand-edit
 dependency versions in that file opportunistically outside of a Renovate PR
 unless fixing something broken.
 
 Verify Gradle wrapper integrity via `distributionSha256Sum` in
-`gradle/wrapper/gradle-wrapper.properties`, and update both together when
+`apps/android/gradle/wrapper/gradle-wrapper.properties`, and update both together when
 bumping the wrapper version. CI should build against the committed wrapper
 only — never a floating Gradle version.
 

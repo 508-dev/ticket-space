@@ -8,8 +8,7 @@ room. It is inspired by the community-space lighting in Cory Doctorow's
 
 The app is a Kotlin/Jetpack Compose Android client backed by a self-hosted
 PocketBase server, whose schema and API rules live in versioned JS migrations.
-It is currently pre-MVP: the P0 (photo tickets) and P1 (pins in space) features
-are defined but not yet built.
+The P0 (photo tickets) and P1 (pins in space) features are implemented.
 
 ## Layout
 
@@ -17,15 +16,16 @@ are defined but not yet built.
 apps/android/      Kotlin/Compose app (Gradle root lives here)
 apps/pocketbase/   Pinned PocketBase backend (Dockerfile, pb_migrations/, pb_hooks/)
 docs/              Architecture (the design contract), development, deployment
-scripts/           Repo entrypoints (lint, format, test, check-all, dev)
-stacks/android/    Android release/versioning conventions (for issue #12)
+scripts/           Repo entrypoints and Android version synchronization
+.github/workflows/ CI, Conventional Commit PR-title gate, signed GitHub releases
+version.txt        Android release version (source of truth)
 ```
 
 ## Read Next
 
 - [docs/architecture.md](docs/architecture.md) — the design contract for contributors and agents.
 - [docs/development.md](docs/development.md) — local development runbook.
-- [docs/deployment.md](docs/deployment.md) — deployment notes.
+- [docs/deployment.md](docs/deployment.md) — backend deployment and signed Android releases.
 - [AGENTS.md](AGENTS.md) — agent operating instructions.
 - [DECISIONS.md](DECISIONS.md) — project decisions.
 - [MANIFEST.md](MANIFEST.md) — file inventory.
@@ -35,4 +35,6 @@ The apps carry their own build/run instructions in `apps/android/README.md` and
 
 ## Status
 
-Pre-MVP. No release yet; CI/release is tracked in GitHub issue #12.
+MVP implemented; first release pending. CI builds debug APK artifacts and runs
+Android checks plus the PocketBase smoke test. The owner merges release-please
+PRs to publish signed APKs to GitHub Releases (see the release runbook above).

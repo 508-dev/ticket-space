@@ -2,11 +2,13 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "simple",
   "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "initial-version": "0.1.0",
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": false,
   "packages": {
     ".": {
-      "package-name": "example"
+      "package-name": "ticketspace"
     }
   },
   "changelog-sections": [

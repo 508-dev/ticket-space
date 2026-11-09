@@ -58,5 +58,8 @@ architecture, AR/spatial model, and the local merge gate — are recorded in
 - Android app (Kotlin/Compose) + PocketBase backend with JS migrations. No
   Python, Ruby, or TypeScript app, no pnpm, no Postgres/Redis, no web frontend.
 - MVP v0.1.0 = P0 (photo tickets) + P1 (pins in space).
-- Release machinery (release-please, `sync-version.sh`) is deferred to GitHub
-  issue #12.
+- Release-please grooms human-merged release PRs; a single main-push workflow
+  tags and publishes a signed APK to GitHub Releases. `version.txt` is the source
+  of truth, with literal Gradle versions derived by `scripts/sync-version.sh`.
+  Secrets are in GitHub Environment `Prod`. No Play/F-Droid publishing or R8
+  enablement. See `docs/deployment.md`.

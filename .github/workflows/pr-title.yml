@@ -1,0 +1,41 @@
+# Squash-merged PR titles become the Conventional Commit subjects read by
+# release-please. See docs/deployment.md for the versioning rules.
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  conventional-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2
+        with:
+          egress-policy: audit
+
+      - name: Check the PR title is a Conventional Commit
+        env:
+          # Untrusted PR input belongs in env, not interpolated into shell code.
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|perf|revert|refactor|docs|test|build|ci|chore|style)(\([a-z0-9._/-]+\))?!?: .+'
+          if [[ $TITLE =~ $pattern ]]; then
+            echo "OK: $TITLE"
+            exit 0
+          fi
+          cat >&2 <<EOF
+          PR title is not a Conventional Commit:
+
+              $TITLE
+
+          Use: <type>[optional (scope)][optional !]: <description>
+          feat: minor bump; fix:/perf: patch bump; !: breaking change.
+          Breaking changes bump minor before 1.0, major afterwards.
+          Other types do not trigger releases on their own.
+          See docs/deployment.md.
+          EOF
+          exit 1
