@@ -41,6 +41,7 @@ jobs:
               - 'apps/android/**'
               - 'scripts/**'
               - '.github/workflows/**'
+              - '.editorconfig'
               - 'version.txt'
               - '.release-please-*.json'
               - 'CHANGELOG.md'
