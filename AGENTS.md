@@ -23,7 +23,7 @@
 - `apps/pocketbase`: pinned PocketBase backend (`Dockerfile`, `pb_migrations/`, `pb_hooks/`, `scripts`).
 - `scripts`: stable project entrypoints (`lint`, `format`, `test`, `check-all`, `dev`).
 - `version.txt`, `.release-please-*.json`: Android release version and release-please config.
-- `.github/workflows`: CI, Conventional Commit PR-title gate, signed GitHub releases.
+- `.github/workflows`: CI, Conventional Commit PR-title gate, signed stable and per-branch beta GitHub releases.
 - `.context`: gitignored workspace-local scratch for agents.
 
 ## Android Notes
@@ -37,6 +37,10 @@
   or `TICKETSPACE_KEYSTORE_FILE`, `TICKETSPACE_KEYSTORE_PASSWORD`,
   `TICKETSPACE_KEY_ALIAS`, `TICKETSPACE_KEY_PASSWORD`. Without either complete
   source, release builds are unsigned. Keep release minification off.
+- Beta signing is independent: `TICKETSPACE_BETA_KEYSTORE_*` variables sign the
+  `beta` build type, which falls back to the debug key without them. CI uses
+  repository-level `BETA_*` secrets, never the `Prod` release key. See
+  `docs/beta-builds.md`.
 
 ## PocketBase Notes
 

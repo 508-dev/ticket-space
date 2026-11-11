@@ -110,6 +110,19 @@ Play or F-Droid publishing, and release minification remains disabled.
    This is intentionally not a separate tag-triggered workflow: tags created
    with `GITHUB_TOKEN` do not trigger another workflow.
 
+### Per-branch beta builds
+
+`.github/workflows/beta.yml` builds Ticket Space Beta for every pushed non-main
+branch except release-please and `gh-pages` branches. Signed builds become
+`beta-<branch>-<run>` pre-releases with `--latest=false`; older betas for that
+branch are pruned, and branch deletion cleans them up once the workflow is on
+`main`. Betas use repository-level `BETA_KEYSTORE_BASE64`,
+`BETA_KEYSTORE_PASSWORD`, `BETA_KEY_ALIAS`, and `BETA_KEY_PASSWORD`, never the
+`Prod` environment or release key. Missing beta credentials reduce the workflow
+to a compile-only check. See `docs/beta-builds.md` for installation, local
+signing, versioning, and the separate Android OAuth client required for beta
+Cloud Anchors.
+
 ### Version source and first release
 
 Root `version.txt` is the sole Android version source. Run
@@ -172,6 +185,10 @@ report that already-created release again).
   Keep the existing local-debug client. The app ships no API key/client ID.
   The owner can read the public fingerprint locally with `keytool -list -v
   -keystore /path/to/release.keystore -alias ticketspace` (password prompt).
+- Signed betas need a separate **Android OAuth 2.0 Client ID** for package
+  `dev.co508.ticketspace.beta` and beta-key SHA-1
+  `29:0E:D5:BB:05:C3:FF:86:B6:6F:0F:1E:8A:C0:08:E9:D8:C0:41:64`.
+  See `docs/beta-builds.md`.
 
 ### Local signing
 

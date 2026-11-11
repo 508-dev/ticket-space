@@ -18,7 +18,7 @@ cleanup.
 | `version.txt`, `.release-please-config.json`, `.release-please-manifest.json` | Android version source and release-please configuration/state. |
 | `apps/android/keystore.properties.example` | Local signing config template; real material is gitignored. |
 | `package.json`, `bun.lock`, `bunfig.toml`, `biome.json` | Root Bun tooling (Biome). |
-| `.github/` | Issue/PR templates; Android/Biome/PocketBase CI, PR-title check, signed GitHub APK releases. |
+| `.github/` | Issue/PR templates; Android/Biome/PocketBase CI, PR-title check, signed stable and beta GitHub APK releases. |
 | `.gitignore`, `.dockerignore`, `.editorconfig`, `.worktreeinclude` | Repo hygiene. |
 | `.env.example` | Environment contract template. |
 | `.cursor/rules/` | Cursor agent pointer to `AGENTS.md`. |
@@ -31,6 +31,7 @@ cleanup.
 | `docs/architecture.md` | Design contract (authoritative). |
 | `docs/development.md` | Local development runbook. |
 | `docs/deployment.md` | Backend deployment and Android release/signing runbook. |
+| `docs/beta-builds.md` | Per-branch beta installation, signing, and ARCore authorization. |
 | `docs/tooling.md` | Tooling conventions. |
 | `docs/supply-chain.md` | Dependency cooldown and locked-install policy. |
 | `docs/github-workflows.md` | GitHub workflow guidance. |

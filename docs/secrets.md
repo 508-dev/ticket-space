@@ -16,6 +16,11 @@ Where the values live:
 - GitHub Environment `Prod`: `RELEASE_KEYSTORE_BASE64`,
   `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`;
   optional `RELEASE_PLEASE_TOKEN` (falls back to `GITHUB_TOKEN`).
+- Repository-level GitHub Actions secrets: `BETA_KEYSTORE_BASE64`,
+  `BETA_KEYSTORE_PASSWORD`, `BETA_KEY_ALIAS`, and `BETA_KEY_PASSWORD` sign only
+  per-branch beta APKs. The beta workflow never declares `Prod` or reads the
+  release key. Without the beta keystore it compiles but does not publish; see
+  `docs/beta-builds.md`.
 - Coolify environment variables: production values for the PocketBase service.
 
 Rules:

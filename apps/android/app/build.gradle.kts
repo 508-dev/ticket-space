@@ -41,6 +41,21 @@ val releaseSigning: Map<String, String>? =
             ?.mapValues { (_, value) -> value!! }
     }
 
+// Beta signing is independent of the release key. Local builds without beta
+// credentials fall back to the debug key so assembleBeta remains a compile check.
+val betaSigning: Map<String, String>? =
+    mapOf(
+        "storeFile" to "TICKETSPACE_BETA_KEYSTORE_FILE",
+        "storePassword" to "TICKETSPACE_BETA_KEYSTORE_PASSWORD",
+        "keyAlias" to "TICKETSPACE_BETA_KEY_ALIAS",
+        "keyPassword" to "TICKETSPACE_BETA_KEY_PASSWORD",
+    ).mapValues { (_, name) -> providers.environmentVariable(name).orNull }
+        .takeIf { material -> material.values.none { it.isNullOrBlank() } }
+        ?.mapValues { (_, value) -> value!! }
+
+val betaVersionCode = providers.environmentVariable("TICKETSPACE_BETA_VERSION_CODE").orNull?.toInt()
+val betaVersionName = providers.environmentVariable("TICKETSPACE_BETA_VERSION_NAME").orNull
+
 fun quoted(value: String) = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 android {
@@ -79,6 +94,19 @@ android {
                     }
             }
         }
+        create("beta") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".beta"
+            signingConfig =
+                betaSigning?.let { material ->
+                    signingConfigs.create("beta") {
+                        storeFile = rootProject.file(material.getValue("storeFile"))
+                        storePassword = material.getValue("storePassword")
+                        keyAlias = material.getValue("keyAlias")
+                        keyPassword = material.getValue("keyPassword")
+                    }
+                } ?: signingConfigs.getByName("debug")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -89,6 +117,17 @@ android {
         buildConfig = true
     }
     packaging.resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+}
+
+// Keep the generated production literals untouched. CI overrides only beta
+// outputs with its monotonically increasing workflow run number.
+androidComponents {
+    onVariants(selector().withBuildType("beta")) { variant ->
+        variant.outputs.forEach { output ->
+            betaVersionCode?.let { output.versionCode.set(it) }
+            betaVersionName?.let { output.versionName.set(it) }
+        }
+    }
 }
 
 ktlint { android.set(true) }
