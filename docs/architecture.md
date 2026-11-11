@@ -165,6 +165,9 @@ interface AnchorProvider {
   Cloud project, registered with the package and the owner's local debug SHA-1.
   Register the release key's SHA-1 as a second Android OAuth client in that
   project before testing signed release builds (see `docs/deployment.md`).
+  Per-branch betas use the same keyless mechanism with package
+  `dev.co508.ticketspace.beta` and their own signing certificate, requiring a
+  separate Android OAuth client (see `docs/beta-builds.md`).
   Record `expires_at`. Check `estimateFeatureMapQualityForHosting` and guide the
   user to move until the quality is sufficient.
 - The provider is chosen per room at registration; resolution always uses the
