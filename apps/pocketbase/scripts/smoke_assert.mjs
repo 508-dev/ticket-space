@@ -424,6 +424,43 @@ async function main() {
     check(spoofed.data?.done_at === "", "spoofed done_at is stored empty on create (status open)");
   }
 
+  // --- Thing deletion preserves todos (optional non-cascading relation) --
+  console.log("\n[Thing delete preserves room-level todos]");
+  {
+    const linked = [];
+    for (const status of ["open", "done"]) {
+      const todo = await req("POST", "/api/collections/todos/records", {
+        token: s1.token,
+        json: {
+          title: `thing-delete-${status}`,
+          status,
+          priority: 1,
+          room: roomId,
+          thing: thingId,
+          created_by: s1.record.id,
+        },
+      });
+      check(todo.ok && todo.data?.thing === thingId, `seed linked ${status} todo`);
+      linked.push(todo.data);
+    }
+    const deleted = await req("DELETE", `/api/collections/things/records/${thingId}`, {
+      token: s1.token,
+    });
+    check(deleted.status === 204, "delete Thing without client-side unlink requests");
+    for (const original of linked) {
+      const kept = await req("GET", `/api/collections/todos/records/${original.id}`, {
+        token: s1.token,
+      });
+      check(
+        kept.ok &&
+          kept.data?.thing === "" &&
+          kept.data?.room === roomId &&
+          kept.data?.status === original.status,
+        `PocketBase clears thing, preserves room and ${original.status} todo`,
+      );
+    }
+  }
+
   // --- room cascade delete --------------------------------------------
   console.log("\n[room cascade delete]");
   {

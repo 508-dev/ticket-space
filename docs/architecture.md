@@ -127,9 +127,14 @@ events.
    use), photos.
 5. **Todo detail** — edit fields, view photos, mark done or reopen, **Show in
    AR** when it has a Thing.
-6. **AR view** (P1) — "Locating room…" state, beacons, edge arrows, tap a beacon
-   to open its card and mark it done; place a new Thing; move a Thing; a "show
-   things" toggle reveals Things with no open todos.
+6. **AR view** (P1) — "Locating room…" state, beacons and edge arrows. Primary
+   **Todo here** places an unnamed Thing and opens New todo with an AR photo;
+   secondary **New Thing** places a spot and opens the Thing editor, requiring a
+   label to save. Unnamed Things display as **Spot**. Tap a beacon or the
+   crosshair statusboard to edit its label, open/complete its sorted open todos,
+   add a todo, move it, or confirm deletion (todos stay as room-level todos).
+   A "show things" toggle reveals Things with no open todos. Count badges show
+   multiple open todos; the statusboard previews the spot near the crosshair.
 7. **Register room** (P1) — enter a name, choose an anchor provider, then a
    guided scan.
 8. **Settings** — signed-in user, sign out, default anchor provider, backend URL
@@ -209,8 +214,19 @@ When several anchors resolve, prefer the anchor closest to the camera.
 - One glowing beacon per Thing with open todos, coloured by the highest open
   priority: urgent red and pulsing, high amber, normal teal, low grey.
 - Edge-of-screen arrows point to beacons outside the view.
-- Tap a beacon to open a card listing the Thing's open todos, each with a "mark
-  done" action.
+- Tap a beacon to open the Thing editor: editable label, open todos sorted by
+  priority descending then oldest (tap for detail or mark done), Add todo, Move,
+  and confirmed Delete Thing. PocketBase clears the optional `todos.thing`
+  relation on deletion; open and done todos remain in their room.
+- Todo here creates an unnamed Thing (**Spot**) at the confirmed room-frame pose,
+  then opens New todo with room, Thing and AR camera photo. New Thing instead
+  opens the editor at that pose; saving a new Thing requires a nonblank label.
+- A crosshair statusboard just below centre shows the nearest projected beacon
+  within 12% of the shorter screen side, in front and within 8 m: label, open
+  count, priority-coloured dots and the top todo title. Selection dwells for
+  150 ms to avoid flicker; tap to edit. Hide it while placing/moving.
+- On-screen, front-facing beacons with at least two open todos have a projected
+  count badge; off-screen/behind-camera beacons use edge arrows instead.
 
 ## Engineering rules
 

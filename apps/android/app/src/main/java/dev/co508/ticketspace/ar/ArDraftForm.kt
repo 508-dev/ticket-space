@@ -1,5 +1,6 @@
 package dev.co508.ticketspace.ar
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -11,6 +12,8 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import dev.co508.ticketspace.AppContainer
 import dev.co508.ticketspace.ui.NewTodoScreen
 import dev.co508.ticketspace.ui.NewTodoViewModel
+import dev.co508.ticketspace.ui.TodoDetailScreen
+import dev.co508.ticketspace.ui.TodoDetailViewModel
 import dev.co508.ticketspace.ui.screenModel
 
 @Composable
@@ -34,5 +37,30 @@ fun ArDraftForm(
             draft.photo?.let { form.photos.add(it) }
         }
         NewTodoScreen(form, draft.room, close)
+    }
+}
+
+@Composable
+fun ArTodoDetail(
+    app: AppContainer,
+    id: String,
+    close: () -> Unit,
+    showInAr: () -> Unit,
+) {
+    val owner =
+        remember(id) {
+            object : ViewModelStoreOwner {
+                override val viewModelStore = ViewModelStore()
+            }
+        }
+    DisposableEffect(owner) { onDispose { owner.viewModelStore.clear() } }
+    BackHandler(onBack = close)
+    CompositionLocalProvider(LocalViewModelStoreOwner provides owner) {
+        TodoDetailScreen(
+            screenModel { TodoDetailViewModel(app.api, app.spaces, app.auth) },
+            id,
+            close,
+            { showInAr() },
+        )
     }
 }

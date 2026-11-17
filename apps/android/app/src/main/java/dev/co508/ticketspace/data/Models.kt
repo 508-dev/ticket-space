@@ -74,7 +74,9 @@ data class Thing(
     @SerialName("pose_in_room") val poseInRoom: JsonObject? = null,
     val created: String = "",
     override val updated: String = "",
-) : Record
+) : Record {
+    val displayLabel: String get() = label.ifBlank { "Spot" }
+}
 
 @Serializable
 data class RoomAnchor(

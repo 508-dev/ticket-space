@@ -227,6 +227,14 @@ class PocketBaseClient(
             ),
         )
 
+    suspend fun renameThing(
+        id: String,
+        label: String,
+    ): Thing = wireJson.decodeFromString(save("things", id, jsonBody(buildJsonObject { put("label", label) })))
+
+    /** PocketBase clears optional, non-cascading todos.thing relations, preserving every todo. */
+    suspend fun deleteThing(id: String) = delete("things", id)
+
     suspend fun saveAnchor(
         id: String?,
         room: String,

@@ -12,12 +12,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.co508.ticketspace.data.Room
 import dev.co508.ticketspace.data.SpaceState
@@ -34,7 +32,6 @@ fun ArSheets(
     closePicker: () -> Unit,
     closeUnplaced: () -> Unit,
 ) {
-    val context = LocalContext.current
     val room = rooms.find { it.id == runtime.locator.room }
     val located = runtime.locator.worldRoom != null
     if (picker) {
@@ -80,45 +77,19 @@ fun ArSheets(
                         },
                         enabled = located && !runtime.busy,
                     ) {
-                        Text(
-                            thing.label.ifBlank {
-                                state.todos.firstOrNull { it.thing == thing.id }?.title
-                                    ?: "Thing ${thing.id.takeLast(5)}"
-                            },
-                        )
+                        Text(thing.displayLabel)
                     }
                 }
             }
         }
     }
-    state.things.find { it.id == runtime.selected }?.let { thing ->
-        ModalBottomSheet(onDismissRequest = { runtime.selected = null }) {
-            SheetColumn {
-                Text(thing.label.ifBlank { "Thing" }, style = MaterialTheme.typography.titleLarge)
-                val todos = state.todos.filter { it.thing == thing.id && it.status == TodoStatus.OPEN }
-                if (todos.isEmpty()) Text("No open todos here.")
-                todos.forEach { todo ->
-                    Text("${todo.priorityLevel.label} · ${todo.title}")
-                    TextButton(onClick = { runtime.markDone(todo) }, enabled = !runtime.busy) { Text("Mark done") }
-                }
-                Button(onClick = { runtime.addTodo(context, thing) }, enabled = !runtime.busy && located) {
-                    Text("Add todo here")
-                }
-                OutlinedButton(
-                    onClick = {
-                        runtime.selected = null
-                        runtime.moving = thing
-                        runtime.placing = true
-                    },
-                    enabled = !runtime.busy && located,
-                ) { Text("Move") }
-            }
-        }
+    (runtime.newThing ?: state.things.find { it.id == runtime.selected })?.let { thing ->
+        ThingEditor(runtime, state, thing)
     }
 }
 
 @Composable
-private fun SheetColumn(content: @Composable ColumnScope.() -> Unit) {
+internal fun SheetColumn(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()

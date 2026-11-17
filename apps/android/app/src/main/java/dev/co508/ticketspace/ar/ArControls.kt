@@ -122,7 +122,7 @@ fun ArControls(
                 runtime.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         }
-        if (runtime.placing) {
+        if (plan == null) {
             Text(
                 if (runtime.reticle != null) "⊕" else "+",
                 modifier = Modifier.align(Alignment.Center),
@@ -190,7 +190,11 @@ fun ArControls(
                             if (runtime.moving ==
                                 null
                             ) {
-                                "Point at the spot for a new Thing"
+                                if (runtime.namingThing) {
+                                    "Point at the spot for a new Thing"
+                                } else {
+                                    "Point at the spot for a todo"
+                                }
                             } else {
                                 "Point at the new position"
                             },
@@ -210,9 +214,21 @@ fun ArControls(
                     else -> {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Button(
-                                onClick = { runtime.placing = true },
+                                onClick = {
+                                    runtime.namingThing = false
+                                    runtime.placing = true
+                                },
                                 enabled = located && !runtime.busy,
-                            ) { Text("+ Thing") }
+                            ) { Text("Todo here") }
+                            TextButton(
+                                onClick = {
+                                    runtime.namingThing = true
+                                    runtime.placing = true
+                                },
+                                enabled = located && !runtime.busy,
+                            ) { Text("New Thing") }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(" Show things ")
                             Switch(checked = runtime.showThings, onCheckedChange = { runtime.showThings = it })
                         }
