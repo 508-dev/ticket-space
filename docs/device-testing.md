@@ -113,7 +113,9 @@ Coverage:
 - realtime: subscribe, create a todo, receive its create event within 10 s;
 - mark done sets `done_by`/`done_at` (server-side); reopen clears both;
 - a Thing created with a pose, then unplaced (`pose_in_room = null`); a
-  `room_anchor` (`provider = "local"`) with a pose.
+  `room_anchor` (`provider = "local"`) with a pose;
+- deleting a Thing clears `todos.thing` server-side for both open and done
+  todos, preserving their room and status.
 
 Every created record carries a unique `it-<timestamp>` prefix and is deleted in
 `@After`, so even a failed run leaves nothing behind. Use an
@@ -142,18 +144,30 @@ alignment cannot be validated while the phone is locked or fixed in place.
    Walk at least 75 cm to each of two more spots, tap and host them. Verify the
    progress labels, surface dots and guidance. Save the room and camera photo.
 4. Verify the room reference photo is upright, downscaled to at most 1600 px,
-   and that the room is located. **+ Thing** → centre reticle → confirm places a
-   Thing and opens New todo with room/Thing and an AR camera photo prefilled.
-   Create two Things with different-priority todos. Add another todo to one Thing.
+   and that the room is located. **Todo here** → centre reticle → confirm places an
+   unnamed Thing (**Spot**) and opens New todo with room/Thing and an AR photo
+   prefilled. **New Thing** → reticle → confirm opens the Thing editor instead;
+   saving requires a label. Save it, then **Add todo**. Create two spots with
+   different-priority todos. Add another todo to one spot.
 5. There must be one beacon per Thing, using its highest *open* priority: urgent
    red/pulsing, high amber, normal teal, low grey. Turn around and tilt the camera:
    edge arrows must stay visible, including for Things behind the camera. Check
    that a right-behind Thing points right, not left; return it to view.
-6. Tap a beacon: inspect open todos, **Mark done**, **Add todo here**. Complete the
-   highest priority and verify the colour drops immediately. Complete every todo:
-   beacon disappears. Toggle **Show things** and verify a dim marker can receive
-   a new todo. Long-press a beacon → **Move** → reticle → confirm; it moves without
-   losing its todos. Cancel a move and verify it stays in its original location.
+6. Aim near a beacon: after about 150 ms the statusboard below the crosshair
+   shows label/Spot, open count, priority-coloured dots and an ellipsized top title.
+   Check nearest selection within about 12% of the shorter screen side and 8 m;
+   small aim changes between neighbours should not flicker. Turn away: hide it.
+   Check a **2** count badge for two open todos, no badge for one, and no badges
+   off-screen/behind the camera. Tap the statusboard and a beacon: both open the
+   Thing editor. Rename it, verify priority-desc/oldest-first todos, tap a todo
+   for detail then Back to the editor; **Mark done** and **Add todo** must work.
+   Complete the highest priority and verify the colour drops immediately. Complete
+   every todo: beacon disappears. Toggle **Show things** and verify a dim marker
+   can receive a new todo. Editor → **Move** → reticle → confirm moves it without
+   losing todos; statusboard hides during placement/move. Cancel a move and verify
+   the original location. **Delete Thing** must confirm the total (including done)
+   todo count; cancel leaves it intact. Confirm: all its todos remain in the room
+   with no Thing, and its beacon/badge disappear. Reopen AR to verify persistence.
 7. Return to Room detail → **Open AR**, and Todo detail → **Show in AR**. Local
    anchors should remain valid in the retained session; the selected Thing has a
    halo/edge-arrow highlight, even if all its todos are done. Check top-level AR.
@@ -232,3 +246,16 @@ backend follow-up rather than a silent schema change.
   unlock was attempted. AR UI screenshots, tracking, quality/hosting, physical
   alignment, Depth hits, camera-photo orientation and second-phone Cloud resolution
   remain untested on hardware; run the script above when the owner is available.
+
+### AR Thing workflow verification (2026-11-17)
+
+- `./gradlew assembleDebug lint test ktlintCheck assembleDebugAndroidTest`:
+  **BUILD SUCCESSFUL in 39s**, 50 JVM tests passed (zero failures/errors/skips).
+  New coverage includes crosshair selection/range/visibility, 150 ms dwell,
+  count badges, todo ordering, label-only updates and Thing deletion requests.
+  The updated instrumented backend test compiles; it was not run on a phone.
+- Local `apps/pocketbase/scripts/smoke.sh`: **All assertions passed**, including
+  direct Thing deletion preserving open and done todos as room-level todos.
+  No client-side unlinking, backend logic or schema changes are needed.
+- `adb devices -l` reported no connected device. Install/cold-launch/logcat and
+  visual/physical AR acceptance remain pending; no phone UI was driven.

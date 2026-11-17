@@ -94,15 +94,19 @@ fun ArScene(
                 onSingleTapConfirmed = { event, node ->
                     if (runtime.plan != null) {
                         runtime.tapSurface(event.x, event.y)
-                    } else {
+                    } else if (!runtime.placing && !runtime.busy) {
                         node?.name?.takeIf { id -> state.things.any { it.id == id } }?.let { runtime.selected = it }
                     }
                 },
                 onLongPress = { _, node ->
-                    node?.name?.takeIf { id -> state.things.any { it.id == id } }?.let {
-                        runtime.selected =
-                            it
-                    }
+                    node
+                        ?.name
+                        ?.takeIf { id ->
+                            !runtime.placing && !runtime.busy && state.things.any { it.id == id }
+                        }?.let {
+                            runtime.selected =
+                                it
+                        }
                 },
             ),
     ) {

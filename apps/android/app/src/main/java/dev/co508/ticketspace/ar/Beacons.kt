@@ -9,7 +9,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.dp
 import dev.co508.ticketspace.ar.math.Pose
-import dev.co508.ticketspace.ar.math.projectBeacon
 import dev.co508.ticketspace.data.SpaceState
 import dev.co508.ticketspace.data.Thing
 import dev.co508.ticketspace.data.TodoStatus
@@ -54,17 +53,9 @@ fun beaconColor(priority: Int?): Color =
     }
 
 @Composable
-fun EdgeArrows(
-    beacons: List<Beacon>,
-    runtime: ArRuntime,
-) {
-    // Reading tick invalidates the overlay for every camera frame, even when Things are unchanged.
-    val tick = runtime.tick
+fun EdgeArrows(beacons: List<ProjectedBeacon>) {
     Canvas(Modifier.fillMaxSize()) {
-        if (tick == 0L) return@Canvas
-        beacons.forEach { beacon ->
-            val projected =
-                projectBeacon(beacon.world.t, runtime.view, runtime.projection, size.width, size.height, 28.dp.toPx())
+        beacons.forEach { (beacon, projected) ->
             if (projected.offscreen) {
                 val center = Offset(projected.x, projected.y)
                 val forward = Offset(cos(projected.angle), sin(projected.angle))

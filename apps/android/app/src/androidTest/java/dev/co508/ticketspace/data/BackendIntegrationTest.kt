@@ -198,6 +198,25 @@ class BackendIntegrationTest {
             assertEquals(null, api.saveThing(thing.id, room.id, "$runPrefix-table", null).poseInRoom)
             assertEquals(null, api.get<Thing>("things", thing.id).poseInRoom)
 
+            // Native deletion clears the optional relation for open AND done todos.
+            api.saveTodo(todoA.id, buildJsonObject { put("thing", thing.id) })
+            api.saveTodo(
+                todoB.id,
+                buildJsonObject {
+                    put("thing", thing.id)
+                    put("status", "done")
+                },
+            )
+            api.deleteThing(thing.id)
+            createdThingIds.remove(thing.id)
+            for (id in listOf(todoA.id, todoB.id)) {
+                val preserved = api.get<Todo>("todos", id)
+                assertEquals("", preserved.thing)
+                assertEquals(room.id, preserved.room)
+            }
+            assertEquals(TodoStatus.OPEN, api.get<Todo>("todos", todoA.id).status)
+            assertEquals(TodoStatus.DONE, api.get<Todo>("todos", todoB.id).status)
+
             // -- room anchor (provider local) with a pose --------------------
             val anchor =
                 api.saveAnchor(

@@ -14,6 +14,7 @@ import com.google.ar.core.Plane
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
 import dev.co508.ticketspace.AppContainer
+import dev.co508.ticketspace.ar.math.Pose
 import dev.co508.ticketspace.ar.providers.AnchorOperations
 import dev.co508.ticketspace.ar.providers.CLOUD_TTL_DAYS
 import dev.co508.ticketspace.ar.providers.CloudAnchorProvider
@@ -73,6 +74,9 @@ class ArRuntime(
     var placing by mutableStateOf(false)
     var moving by mutableStateOf<Thing?>(null)
     var selected by mutableStateOf<String?>(null)
+    var newThing by mutableStateOf<Thing?>(null)
+    var namingThing by mutableStateOf(false)
+    var detail by mutableStateOf<String?>(null)
     var showThings by mutableStateOf(false)
     var draft by mutableStateOf<ArTodoDraft?>(null)
     var reticle by mutableStateOf<HitResult?>(null)
@@ -207,6 +211,8 @@ class ArRuntime(
             if (move != null) {
                 check(move.room == room)
                 app.api.saveThing(move.id, room, move.label, pose)
+            } else if (namingThing) {
+                newThing = Thing("", room, poseInRoom = pose.toJson())
             } else {
                 val photo = captureArPhoto(context, checkNotNull(session), checkNotNull(frame))
                 try {
@@ -240,6 +246,32 @@ class ArRuntime(
                     put("priority", todo.priority)
                 },
             )
+            app.spaces.refresh()
+        }
+
+    fun saveThingLabel(
+        thing: Thing,
+        label: String,
+    ) = action {
+        val isNew = thing.id.isEmpty()
+        val trimmed = label.trim()
+        require(trimmed.length <= 80 && (!isNew || trimmed.isNotBlank())) { "Enter a label (up to 80 characters)." }
+        // Patch only the label on existing Things: do not overwrite a concurrent move.
+        val saved =
+            if (isNew) {
+                app.api.saveThing(null, thing.room, trimmed, thing.poseInRoom?.let(Pose::fromJson))
+            } else {
+                app.api.renameThing(thing.id, trimmed)
+            }
+        newThing = null
+        selected = saved.id
+        app.spaces.refresh()
+    }
+
+    fun deleteThing(thing: Thing) =
+        action {
+            app.api.deleteThing(thing.id)
+            selected = null
             app.spaces.refresh()
         }
 
@@ -282,6 +314,9 @@ class ArRuntime(
         placing = false
         moving = null
         selected = null
+        newThing = null
+        namingThing = false
+        detail = null
     }
 }
 

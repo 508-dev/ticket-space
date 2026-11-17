@@ -10,6 +10,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 
@@ -47,6 +48,41 @@ class SpatialApiTest {
             val patch = server.takeRequest()
             assertEquals("PATCH", patch.method)
             assertEquals(JsonNull, wireJson.parseToJsonElement(patch.body.readUtf8()).jsonObject["pose_in_room"])
+        }
+
+    @Test
+    fun `Thing deletion uses native relation cleanup without deleting or patching todos`() =
+        runBlocking {
+            server.enqueue(MockResponse().setResponseCode(204))
+            api.deleteThing("thing")
+            val deletion = server.takeRequest()
+            assertEquals("DELETE", deletion.method)
+            assertEquals("/api/collections/things/records/thing", deletion.path)
+            assertEquals(1, server.requestCount)
+        }
+
+    @Test
+    fun `failed Thing deletion propagates and does not change todos`() =
+        runBlocking {
+            server.enqueue(MockResponse().setResponseCode(403))
+            try {
+                api.deleteThing("thing")
+                fail("Expected access failure")
+            } catch (e: ApiException) {
+                assertEquals(403, e.code)
+            }
+            assertEquals(1, server.requestCount)
+        }
+
+    @Test
+    fun `renaming a Thing only patches label preserving concurrent placement`() =
+        runBlocking {
+            val thing = Thing("thing", "room", "Table")
+            server.enqueue(MockResponse().setBody(wireJson.encodeToString(thing)))
+            assertEquals(thing, api.renameThing("thing", "Table"))
+            val patch = server.takeRequest()
+            assertEquals("PATCH", patch.method)
+            assertEquals("{\"label\":\"Table\"}", patch.body.readUtf8())
         }
 
     @Test

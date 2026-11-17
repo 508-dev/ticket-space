@@ -2,12 +2,15 @@ package dev.co508.ticketspace.ar.math
 
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.sqrt
 
 data class ScreenPoint(
     val x: Float,
     val y: Float,
     val offscreen: Boolean,
     val angle: Float,
+    val behindCamera: Boolean = false,
+    val distance: Float = 0f,
 )
 
 /** OpenGL column-major matrices; screen origin is top-left. Behind-camera arrows keep their bearing. */
@@ -27,8 +30,9 @@ fun projectBeacon(
     val nx = clip[0] / divisor
     val ny = -clip[1] / divisor
     val behind = camera[2] >= 0f
+    val distance = sqrt(camera[0] * camera[0] + camera[1] * camera[1] + camera[2] * camera[2])
     val offscreen = behind || abs(nx) > 1f || abs(ny) > 1f || abs(clip[2]) > divisor
-    if (!offscreen) return ScreenPoint((nx + 1f) * width / 2f, (ny + 1f) * height / 2f, false, 0f)
+    if (!offscreen) return ScreenPoint((nx + 1f) * width / 2f, (ny + 1f) * height / 2f, false, 0f, false, distance)
     var dx = nx * width / 2f
     var dy = ny * height / 2f
     // Exactly behind or on the optical axis has no bearing: choose up deterministically.
@@ -39,7 +43,7 @@ fun projectBeacon(
     val halfW = (width / 2f - margin).coerceAtLeast(1f)
     val halfH = (height / 2f - margin).coerceAtLeast(1f)
     val factor = 1f / maxOf(abs(dx) / halfW, abs(dy) / halfH)
-    return ScreenPoint(width / 2f + dx * factor, height / 2f + dy * factor, true, atan2(dy, dx))
+    return ScreenPoint(width / 2f + dx * factor, height / 2f + dy * factor, true, atan2(dy, dx), behind, distance)
 }
 
 private fun multiply(

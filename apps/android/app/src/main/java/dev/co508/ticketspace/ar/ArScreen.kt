@@ -51,7 +51,8 @@ fun ArScreen(
     var created by remember { mutableStateOf(false) }
     val plan = runtime.plan
     val requestedRoom = request.room
-    val highlightedThing = request.thing
+    var detailHighlight by remember(request.id) { mutableStateOf<String?>(null) }
+    val highlightedThing = detailHighlight ?: request.thing
     DisposableEffect(runtime) { onDispose { runtime.close() } }
     LaunchedEffect(request.id) {
         runtime.cancelRegistration()
@@ -65,7 +66,7 @@ fun ArScreen(
     val cloud = plan?.provider == "cloud" || anchors.any { it.provider == "cloud" }
     Box(Modifier.fillMaxSize()) {
         ArGate(app, cloud, active && !settingUp, back) { ready ->
-            val running = active && ready && !settingUp
+            val running = active && ready && !settingUp && runtime.detail == null
             val lifecycle = rememberArLifecycle(running)
             LaunchedEffect(running) { if (running) created = true }
             LaunchedEffect(runtime.session, anchors, runtime.busy, running) {
@@ -76,17 +77,8 @@ fun ArScreen(
                     Box(Modifier.fillMaxSize().padding(padding)) {
                         ArScene(runtime, state, cloud && ready, highlightedThing, lifecycle)
                         if (running) {
+                            BeaconOverlays(runtime, state, highlightedThing)
                             ArControls(runtime, state, rooms, highlightedThing, back)
-                            EdgeArrows(
-                                beacons(
-                                    state,
-                                    runtime.locator.room,
-                                    runtime.locator.worldRoom,
-                                    runtime.showThings,
-                                    highlightedThing,
-                                ),
-                                runtime,
-                            )
                         }
                         if (running) {
                             runtime.draft?.let { draft ->
@@ -96,6 +88,26 @@ fun ArScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+        if (active) {
+            runtime.detail?.let { id ->
+                Surface(Modifier.fillMaxSize()) {
+                    ArTodoDetail(
+                        app,
+                        id,
+                        close = { runtime.detail = null },
+                        showInAr = {
+                            detailHighlight =
+                                state.todos
+                                    .find { it.id == id }
+                                    ?.thing
+                                    ?.takeIf { it.isNotEmpty() }
+                            runtime.selected = null
+                            runtime.detail = null
+                        },
+                    )
                 }
             }
         }
